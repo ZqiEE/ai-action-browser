@@ -1,0 +1,143 @@
+:root {
+  color-scheme: light;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  --color-page: #f7f8f8;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f0f2f3;
+  --color-surface-raised: #ffffff;
+  --color-text: #17191c;
+  --color-text-muted: #626a73;
+  --color-text-subtle: #7b838c;
+  --color-border: #dde1e5;
+  --color-border-strong: #b8c0c7;
+
+  --color-action: #17191c;
+  --color-action-text: #ffffff;
+  --color-action-hover: #2a2d31;
+  --color-action-pressed: #08090a;
+
+  --color-accent: #00665e;
+  --color-accent-hover: #00544d;
+  --color-accent-soft: #e4f0ee;
+  --color-accent-line: #5f9d96;
+
+  --color-success: #178253;
+  --color-success-soft: #e9f5ee;
+  --color-warning: #9a5b00;
+  --color-warning-soft: #fff4df;
+  --color-danger: #c62828;
+  --color-danger-soft: #fff0f0;
+  --color-info: #2463a7;
+  --color-info-soft: #eef5fc;
+
+  --color-commercial-surface: #f1f3f5;
+  --color-commercial-border: #d5dae0;
+  --color-commercial-text: #4b5563;
+  --color-cashback: #8a5a00;
+
+  --shadow-float: 0 16px 40px rgb(23 25 28 / 0.12);
+  --shadow-subtle: 0 8px 24px rgb(23 25 28 / 0.06);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  --content-wide: 75rem;
+  --content-reading: 46rem;
+  --motion-fast: 120ms;
+  --motion-medium: 200ms;
+  --focus-ring: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-page: #121314;
+  --color-surface: #1c1e20;
+  --color-surface-muted: #24272a;
+  --color-surface-raised: #222529;
+  --color-text: #f4f5f6;
+  --color-text-muted: #a2a8ae;
+  --color-text-subtle: #858d95;
+  --color-border: #383c40;
+  --color-border-strong: #575d63;
+
+  --color-action: #f4f5f6;
+  --color-action-text: #17191c;
+  --color-action-hover: #ffffff;
+  --color-action-pressed: #dfe2e5;
+
+  --color-accent: #55bdb2;
+  --color-accent-hover: #72cabf;
+  --color-accent-soft: #173b37;
+  --color-accent-line: #55bdb2;
+
+  --color-success: #4fb77d;
+  --color-success-soft: #173728;
+  --color-warning: #d7a13d;
+  --color-warning-soft: #3e3017;
+  --color-danger: #ef6a6a;
+  --color-danger-soft: #431f22;
+  --color-info: #6ca6df;
+  --color-info-soft: #1d3045;
+
+  --color-commercial-surface: #24272a;
+  --color-commercial-border: #484e54;
+  --color-commercial-text: #b2b8be;
+  --color-cashback: #d2a64d;
+
+  --shadow-float: 0 16px 40px rgb(0 0 0 / 0.4);
+  --shadow-subtle: 0 8px 24px rgb(0 0 0 / 0.22);
+  --focus-ring: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --color-page: #121314;
+    --color-surface: #1c1e20;
+    --color-surface-muted: #24272a;
+    --color-surface-raised: #222529;
+    --color-text: #f4f5f6;
+    --color-text-muted: #a2a8ae;
+    --color-text-subtle: #858d95;
+    --color-border: #383c40;
+    --color-border-strong: #575d63;
+    --color-action: #f4f5f6;
+    --color-action-text: #17191c;
+    --color-action-hover: #ffffff;
+    --color-action-pressed: #dfe2e5;
+    --color-accent: #55bdb2;
+    --color-accent-hover: #72cabf;
+    --color-accent-soft: #173b37;
+    --color-accent-line: #55bdb2;
+    --color-success: #4fb77d;
+    --color-success-soft: #173728;
+    --color-warning: #d7a13d;
+    --color-warning-soft: #3e3017;
+    --color-danger: #ef6a6a;
+    --color-danger-soft: #431f22;
+    --color-info: #6ca6df;
+    --color-info-soft: #1d3045;
+    --color-commercial-surface: #24272a;
+    --color-commercial-border: #484e54;
+    --color-commercial-text: #b2b8be;
+    --color-cashback: #d2a64d;
+    --shadow-float: 0 16px 40px rgb(0 0 0 / 0.4);
+    --shadow-subtle: 0 8px 24px rgb(0 0 0 / 0.22);
+  }
+}
