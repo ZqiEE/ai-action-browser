@@ -19,7 +19,7 @@ Status: complete
 
 ## Phase 1 — Web Frontend Foundation
 
-Status: implemented on `agent/web-frontend-foundation`; validation pending CI.
+Status: implemented on `agent/web-frontend-foundation`; typecheck, unit tests, and production build pass in CI.
 
 Goal: create a production-shaped frontend shell without a real backend.
 
@@ -34,7 +34,7 @@ Goal: create a production-shaped frontend shell without a real backend.
 - [x] Add GitHub Actions typecheck, unit-test, and build validation;
 - [ ] Add route-level error boundary;
 - [ ] Add general-purpose TextField and Status primitives;
-- [ ] Confirm all CI checks pass.
+- [x] Confirm current CI checks pass.
 
 Acceptance:
 
