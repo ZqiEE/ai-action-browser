@@ -1,0 +1,49 @@
+.field { display: grid; gap: var(--space-2); }
+.field__label { font-weight: 650; }
+.field__input { min-height: 2.75rem; width: 100%; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text); padding: 0.7rem 0.8rem; }
+.field__input[aria-invalid="true"] { border-color: var(--color-danger); }
+.field__description, .field__error { margin: 0; font-size: 0.85rem; }
+.field__description { color: var(--color-text-muted); }
+.field__error { color: var(--color-danger); }
+
+.status { display: flex; align-items: center; gap: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 0.65rem 0.8rem; color: var(--color-text); background: var(--color-surface-muted); }
+.status--progress { border-color: var(--color-accent-line); background: var(--color-accent-soft); }
+.status--success { border-color: var(--color-success); background: var(--color-success-soft); }
+.status--warning { border-color: var(--color-warning); background: var(--color-warning-soft); }
+.status--danger { border-color: var(--color-danger); background: var(--color-danger-soft); }
+.status--info { border-color: var(--color-info); background: var(--color-info-soft); }
+
+.intent-suggestion { justify-content: space-between; margin: var(--space-2); font-size: 0.86rem; }
+.intent-suggestion button { min-height: 2.25rem; flex: 0 0 auto; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); padding: 0.4rem 0.65rem; cursor: pointer; font-weight: 650; }
+.intent-suggestion button:hover { background: var(--color-surface-muted); }
+
+.task-progress { margin: var(--space-4) 0 var(--space-5); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.task-progress__copy { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.task-progress h2 { margin: 0; font-size: 1rem; }
+.task-progress__status { font-size: 0.82rem; padding: 0.45rem 0.65rem; }
+.task-progress__track { height: 3px; margin-top: var(--space-4); overflow: hidden; border-radius: 999px; background: var(--color-border); }
+.task-progress__track span { display: block; block-size: 100%; background: var(--color-accent); transition: inline-size var(--motion-medium); }
+.task-progress__actions { min-height: 2.75rem; margin-top: var(--space-3); display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); }
+.task-progress__actions .button { min-height: 2.35rem; padding: 0.45rem 0.7rem; font-size: 0.84rem; }
+
+.route-error { width: min(100% - 2rem, 40rem); min-height: 100vh; margin-inline: auto; display: grid; align-content: center; gap: var(--space-5); }
+.route-error h1 { margin: 0; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.1; }
+.route-error__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.route-error__actions a { text-decoration: none; }
+
+@media (max-width: 42rem) {
+  .intent-suggestion, .task-progress__copy { align-items: stretch; flex-direction: column; }
+  .intent-suggestion button { width: 100%; }
+  .task-progress__status { align-self: flex-start; }
+  .task-progress__actions { justify-content: stretch; flex-wrap: wrap; }
+  .task-progress__actions .button { flex: 1 1 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-progress__track span { transition: none; }
+}
+
+@media (forced-colors: active) {
+  .status, .field__input, .task-progress { forced-color-adjust: auto; }
+  .task-progress__track span { background: Highlight; }
+}
