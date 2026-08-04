@@ -4,6 +4,7 @@ import { Button } from "@/components/Button";
 import { CheckIcon, CloseIcon } from "@/components/Icons";
 import { SourcePanel } from "@/components/SourcePanel";
 import { SponsoredOffer } from "@/components/SponsoredOffer";
+import { TaskProgress } from "@/components/TaskProgress";
 import { demoNotice, demoProducts, demoSources } from "@/data/demo";
 import { formatCurrency, resolveLocale } from "@/lib/locale";
 
@@ -43,6 +44,7 @@ export function ComparePage() {
       </section>
 
       <p className="demo-banner" role="note">{demoNotice}</p>
+      <TaskProgress />
 
       <section className="condition-bar" aria-label="Comparison conditions">
         {conditions.map((condition) => (
