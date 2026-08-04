@@ -12,12 +12,16 @@
 
 - 首页与可编辑 Omniprompt；
 - 默认 Search，以及明确的 Compare、Prepare 选择；
+- 基于输入内容的确定性意图建议，但不会自动切换模式；
+- 可暂停、恢复、停止、失败、重试和完成的任务状态；
 - 跨网站购物比较决策页；
 - 主推荐、两项备选、关键取舍和最终价格；
 - 来源详情、信息冲突和可追溯链接；
 - 与自然推荐分离、可隐藏的 Sponsored 模块；
 - 独立全屏高风险确认页；
 - 系统身份验证成功和失败模拟；
+- 路由错误的安全恢复页面；
+- 通用 TextField 与 Status 无障碍组件；
 - 浅色、深色、RTL、强制高对比和减少动态效果；
 - 单元测试、端到端冒烟测试和 GitHub Actions。
 
@@ -90,6 +94,7 @@ npm run test:e2e
 - [文字线框](docs/wireframes.md)
 - [交互规范](docs/interaction-spec.md)
 - [全球市场 UI 要求](docs/global-market-ui.md)
+- [成本模型 v0.1](docs/cost-model-v0.1.md)
 - [路线图](ROADMAP.md)
 
 ## 核心原则
