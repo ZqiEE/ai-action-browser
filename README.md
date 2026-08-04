@@ -6,17 +6,38 @@
 
 ## 当前阶段
 
-项目当前处于 **前端设计冻结与交互原型准备阶段**。
+项目已进入 **第一版 Web 前端交互原型与美国市场验证准备阶段**。
 
-本阶段先确定用户能够看到和理解的核心体验：
+当前分支实现：
 
-- 首页与 Omniprompt；
-- Search、Compare、Prepare 三类行为；
-- 跨网站购物比较；
-- 来源与不确定性；
-- Sponsored 商业内容隔离；
-- 极高风险操作的独立全屏确认页；
-- 浅色、深色和高对比模式。
+- 首页与可编辑 Omniprompt；
+- 默认 Search，以及明确的 Compare、Prepare 选择；
+- 基于输入内容的确定性意图建议，但不会自动切换模式；
+- 可暂停、恢复、停止、失败、重试和完成的任务状态；
+- 跨网站购物比较决策页；
+- 主推荐、两项备选、关键取舍和最终价格；
+- 来源详情、信息冲突和可追溯链接；
+- 与自然推荐分离、可隐藏的 Sponsored 模块；
+- 独立全屏高风险确认页；
+- 系统身份验证成功和失败模拟；
+- 路由错误的安全恢复页面；
+- 通用 TextField 与 Status 无障碍组件；
+- 浅色、深色、RTL、强制高对比和减少动态效果；
+- 单元测试、端到端冒烟测试和 GitHub Actions；
+- GitHub Pages 静态部署流程；
+- AI 成本上限、14 天验证计划与融资材料。
+
+## 市场定位
+
+产品服务全球普通消费者，第一发布与验证市场为美国：
+
+- 默认产品语言为美式英语 `en-US`；
+- 第一批购物演示使用美元、美国地址、税费、配送和退货表达；
+- 货币、日期和文字方向使用国际化格式，不在组件中写死；
+- 从第一版开始预留多语言、RTL、文字放大和不同地址格式；
+- 美国市场验证后，优先扩展美国西班牙语、墨西哥、加拿大、欧洲和东亚市场。
+
+详见 [全球市场 UI 要求](docs/global-market-ui.md)。
 
 ## 已冻结的视觉方向
 
@@ -28,6 +49,43 @@
 - 湖水绿只用于 Focus、Active、Progress 和少量品牌识别；
 - 成功、警告、危险和商业内容使用独立语义颜色；
 - 不使用紫色 AI 渐变、发光、玻璃拟态、机器人、魔法棒或星星符号。
+
+## Web 原型
+
+代码位于 [`apps/web`](apps/web)。
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+其他命令：
+
+```bash
+npm run typecheck
+npm test
+npm run build
+npm run test:e2e
+```
+
+原型只使用明确标注的演示数据，不会执行真实搜索、身份验证、付款或购买。
+
+GitHub Pages 部署工作流位于 [`.github/workflows/pages.yml`](.github/workflows/pages.yml)。当仓库 Pages 环境允许 GitHub Actions 发布后，公开地址应为：
+
+`https://zqiee.github.io/ai-action-browser/`
+
+## 当前执行顺序
+
+1. 发布并验证公开 Demo；
+2. 申请 Google Cloud、AWS 与 Microsoft startup credits；
+3. 只验证美国笔记本电脑比较场景；
+4. 招募至少 20 位美国消费者并完成至少 50 次任务；
+5. 测量平均与 p95 任务成本、信任和商家跳转；
+6. 小规模预热相关投资人；
+7. 有真实证据后决定是否正式启动 Pre-seed。
+
+本阶段不继续扩大为完整浏览器、开发者市场、广告竞价平台或真实自动付款。
 
 ## 仓库边界
 
@@ -49,10 +107,28 @@
 
 ## 文档
 
+### 产品与设计
+
 - [前端设计冻结 v1.0](docs/frontend-design-freeze-v1.0.md)
 - [设计 Token](docs/design-tokens.md)
 - [文字线框](docs/wireframes.md)
 - [交互规范](docs/interaction-spec.md)
+- [全球市场 UI 要求](docs/global-market-ui.md)
+- [无障碍验收清单](docs/accessibility-acceptance.md)
+
+### 成本与验证
+
+- [成本模型 v0.1](docs/cost-model-v0.1.md)
+- [AI 成本政策](docs/launch/ai-cost-policy.md)
+- [14 天美国验证计划](docs/launch/14-day-validation-plan.md)
+- [验证指标模板](docs/launch/validation-metrics-template.md)
+
+### 融资准备
+
+- [投资人 One-pager](docs/fundraising/investor-one-pager.md)
+- [投资人外联材料](docs/fundraising/investor-outreach.md)
+- [Startup Credits 申请清单](docs/fundraising/startup-credits-checklist.md)
+
 - [路线图](ROADMAP.md)
 
 ## 核心原则
@@ -67,3 +143,5 @@
 8. 用户数据最小化收集，默认不用于训练。
 9. 设计服务于全球普通消费者，不要求用户理解 AI、Rust 或协议。
 10. 第一代产品优先完成购物比较与购买准备的完整闭环。
+11. 每个生产 AI 任务必须在执行前拥有搜索、Token、浏览器时间、重试和金额上限。
+12. 用户每次获得 AI 级体验，但系统不为未变化的公共证据重复支付完整推理成本。

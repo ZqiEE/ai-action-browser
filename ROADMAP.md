@@ -2,7 +2,7 @@
 
 ## Phase 0 — Design Freeze
 
-Status: in progress
+Status: complete
 
 - [x] Freeze visual direction;
 - [x] Freeze light and dark color semantics;
@@ -13,21 +13,29 @@ Status: in progress
 - [x] Freeze full-screen high-risk confirmation flow;
 - [x] Add six text wireframes;
 - [x] Add core interaction specification;
-- [ ] Review all copy for global consumer clarity;
-- [ ] Produce accessibility acceptance checklist.
+- [x] Define U.S.-first global market requirements;
+- [x] Review first-prototype copy for ordinary consumer clarity;
+- [x] Produce accessibility acceptance checklist;
+- [x] Add initial operating and development cost model.
 
 ## Phase 1 — Web Frontend Foundation
 
+Status: implemented on `agent/web-frontend-foundation`; typecheck, unit tests, and production build pass in CI.
+
 Goal: create a production-shaped frontend shell without a real backend.
 
-- [ ] Initialize `apps/web` with current stable React, TypeScript strict and Vite;
-- [ ] Add semantic token layer independent of component framework;
-- [ ] Add routing for Home, Compare, Source and Confirm pages;
-- [ ] Add light, dark, forced-colors and reduced-motion support;
-- [ ] Add shared accessible Button, IconButton, TextField and Status components;
-- [ ] Add demonstration data clearly marked as non-live;
-- [ ] Add error boundary and not-found route;
-- [ ] Add component tests and end-to-end smoke tests.
+- [x] Initialize `apps/web` with current stable React, TypeScript strict and Vite;
+- [x] Add semantic token layer independent of component framework;
+- [x] Add routing for Home, Compare, Source and Confirm pages;
+- [x] Add light, dark, forced-colors and reduced-motion support;
+- [x] Add shared accessible Button and IconButton primitives;
+- [x] Add demonstration data clearly marked as non-live;
+- [x] Add not-found route;
+- [x] Add component test and end-to-end smoke test;
+- [x] Add GitHub Actions typecheck, unit-test, and build validation;
+- [x] Add route-level error boundary;
+- [x] Add general-purpose TextField and Status primitives;
+- [x] Confirm current CI checks pass.
 
 Acceptance:
 
@@ -39,15 +47,18 @@ Acceptance:
 
 ## Phase 2 — Omniprompt Prototype
 
-- [ ] Editable multiline input;
-- [ ] Default Search behavior;
-- [ ] Compare and Prepare suggestions;
-- [ ] Keyboard navigation and Escape behavior;
-- [ ] Voice/image/attachment placeholders;
-- [ ] Running, paused, stopped, failed and completed states;
+- [x] Editable multiline input;
+- [x] Default Search behavior;
+- [x] Compare and Prepare choices;
+- [x] Keyboard navigation and Escape behavior;
+- [x] Voice and attachment placeholders;
+- [x] Reduced-motion alternative;
+- [x] Clear normal-search fallback;
+- [x] Deterministic intent suggestion based on typed content without automatic mode switching;
+- [x] Running, paused, stopped, failed and completed demonstration states;
 - [ ] Stable sticky transition from homepage to results;
-- [ ] Reduced-motion alternative;
-- [ ] Clear normal-search fallback.
+- [ ] Real search-result route distinct from shopping comparison;
+- [ ] Provider-backed intent classification behind the deterministic policy layer.
 
 Acceptance:
 
@@ -55,18 +66,21 @@ A first-time user understands that the product can search, compare and prepare w
 
 ## Phase 3 — Shopping Comparison Prototype
 
-- [ ] Editable user conditions;
-- [ ] One primary recommendation;
-- [ ] Two compact alternatives;
-- [ ] Selection and main-choice switching;
-- [ ] Trade-off disclosure;
-- [ ] Final-price summary;
-- [ ] Delivery, return and warranty metadata;
-- [ ] Source citations and Source Panel;
-- [ ] Stale-data and source-conflict states;
-- [ ] Sponsored offer after organic results;
-- [ ] Hide Sponsored interaction;
-- [ ] Mobile fixed decision bar.
+- [ ] Full condition editing;
+- [x] Removable user conditions;
+- [x] One primary recommendation;
+- [x] Two compact alternatives;
+- [x] Selection and main-choice switching;
+- [x] Trade-off disclosure;
+- [x] Final-price summary;
+- [x] Delivery, return and warranty metadata;
+- [x] Source citations, Source Panel, and source route;
+- [x] Stale-data and source-conflict presentation;
+- [x] Sponsored offer after organic results;
+- [x] Hide Sponsored interaction;
+- [x] Mobile fixed decision bar;
+- [ ] Responsive product imagery and image-source policy;
+- [ ] Live search and extraction adapter interfaces;
 
 Acceptance:
 
@@ -74,17 +88,20 @@ A user can explain why the first option is recommended, what its main cost is an
 
 ## Phase 4 — High-Risk Confirmation Prototype
 
-- [ ] Independent full-screen Confirm route;
-- [ ] Destination and connection information;
-- [ ] Order, Delivery, Payment and Data sharing sections;
-- [ ] Per-section Edit flow;
-- [ ] Commercial disclosure;
-- [ ] Confirm with system-verification simulation;
-- [ ] Authentication cancelled and failed states;
+- [x] Independent full-screen Confirm route;
+- [x] Destination and connection information;
+- [x] Order, Delivery, Payment and Data sharing sections;
+- [x] Visible per-section Edit entry points;
+- [x] Commercial disclosure;
+- [x] Confirm with system-verification simulation;
+- [x] Authentication failed state;
+- [x] Duplicate-submit prevention;
+- [x] Neutral success receipt;
+- [x] Mobile fixed action area;
+- [ ] Implement per-section Edit flows;
+- [ ] Authentication cancelled state;
 - [ ] Network failure, price change and merchant rejection states;
-- [ ] Duplicate-submit prevention;
-- [ ] Neutral success receipt;
-- [ ] Mobile fixed action area.
+- [ ] Expired task and changed-destination states.
 
 Acceptance:
 
@@ -111,7 +128,7 @@ Before confirmation, a user can state the destination, amount, recipient, shared
 
 ## Phase 7 — User Validation
 
-Test with ordinary consumers, not only technical users.
+Test with ordinary consumers, beginning with U.S. participants and expanding globally.
 
 Primary questions:
 
@@ -121,6 +138,8 @@ Primary questions:
 4. Do they notice Sponsored content without mistaking it for the best result?
 5. Before payment, do they understand the destination, amount and shared data?
 6. Can they stop or recover a task without losing context?
+7. Do U.S. English, price, tax, delivery, and return terms feel natural to U.S. consumers?
+8. Does the interface survive translation, RTL, and 200% text zoom without changing the core mental model?
 
 ## Not in the first prototype
 
