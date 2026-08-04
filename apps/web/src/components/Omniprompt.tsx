@@ -1,4 +1,4 @@
-import { useId, useState, type KeyboardEvent } from "react";
+import { useId, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { IconButton } from "@/components/Button";
 import {
@@ -14,7 +14,7 @@ interface ModeOption {
   id: IntentMode;
   label: string;
   description: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }
 
 const modeOptions: ModeOption[] = [
@@ -50,7 +50,7 @@ export function Omniprompt({ initialValue = "", compact = false }: OmnipromptPro
   const [open, setOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const selectedMode = modeOptions[selectedIndex] ?? modeOptions[0];
+  const selectedMode = modeOptions[selectedIndex] ?? modeOptions[0]!;
 
   function submit(mode: IntentMode = selectedMode.id) {
     const query = value.trim();
