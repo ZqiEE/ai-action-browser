@@ -1,6 +1,7 @@
-import { useId, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useId, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { IconButton } from "@/components/Button";
+import { Status } from "@/components/FormPrimitives";
 import {
   AttachmentIcon,
   CompareIcon,
@@ -8,6 +9,7 @@ import {
   PrepareIcon,
   SearchIcon,
 } from "@/components/Icons";
+import { suggestIntent } from "@/lib/intent";
 import type { IntentMode } from "@/types";
 
 interface ModeOption {
@@ -51,6 +53,15 @@ export function Omniprompt({ initialValue = "", compact = false }: OmnipromptPro
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const selectedMode = modeOptions[selectedIndex] ?? modeOptions[0]!;
+  const suggestion = useMemo(() => suggestIntent(value), [value]);
+  const suggestedOption = suggestion
+    ? modeOptions.find((option) => option.id === suggestion.mode)
+    : undefined;
+
+  function selectMode(mode: IntentMode) {
+    const index = modeOptions.findIndex((option) => option.id === mode);
+    if (index >= 0) setSelectedIndex(index);
+  }
 
   function submit(mode: IntentMode = selectedMode.id) {
     const query = value.trim();
@@ -134,6 +145,15 @@ export function Omniprompt({ initialValue = "", compact = false }: OmnipromptPro
         <span className="omniprompt__hint">Enter to continue · Shift+Enter for a new line</span>
       </div>
       <div className="omniprompt__line" aria-hidden="true" />
+
+      {open && suggestion && suggestedOption && suggestion.mode !== selectedMode.id && (
+        <Status tone="info" className="intent-suggestion">
+          <span><strong>Suggested: {suggestedOption.label}.</strong> {suggestion.reason}</span>
+          <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => selectMode(suggestion.mode)}>
+            Use {suggestion.mode === "compare" ? "Compare" : "Prepare"}
+          </button>
+        </Status>
+      )}
 
       {open && (
         <div id={listboxId} className="intent-menu" role="listbox" aria-label="Choose how to continue">
