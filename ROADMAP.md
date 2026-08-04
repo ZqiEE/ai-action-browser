@@ -15,7 +15,8 @@ Status: complete
 - [x] Add core interaction specification;
 - [x] Define U.S.-first global market requirements;
 - [x] Review first-prototype copy for ordinary consumer clarity;
-- [x] Produce accessibility acceptance checklist.
+- [x] Produce accessibility acceptance checklist;
+- [x] Add initial operating and development cost model.
 
 ## Phase 1 — Web Frontend Foundation
 
@@ -32,8 +33,8 @@ Goal: create a production-shaped frontend shell without a real backend.
 - [x] Add not-found route;
 - [x] Add component test and end-to-end smoke test;
 - [x] Add GitHub Actions typecheck, unit-test, and build validation;
-- [ ] Add route-level error boundary;
-- [ ] Add general-purpose TextField and Status primitives;
+- [x] Add route-level error boundary;
+- [x] Add general-purpose TextField and Status primitives;
 - [x] Confirm current CI checks pass.
 
 Acceptance:
@@ -53,10 +54,11 @@ Acceptance:
 - [x] Voice and attachment placeholders;
 - [x] Reduced-motion alternative;
 - [x] Clear normal-search fallback;
-- [ ] Intent suggestion based on typed content;
-- [ ] Running, paused, stopped, failed and completed task states;
+- [x] Deterministic intent suggestion based on typed content without automatic mode switching;
+- [x] Running, paused, stopped, failed and completed demonstration states;
 - [ ] Stable sticky transition from homepage to results;
-- [ ] Real search-result route distinct from shopping comparison.
+- [ ] Real search-result route distinct from shopping comparison;
+- [ ] Provider-backed intent classification behind the deterministic policy layer.
 
 Acceptance:
 
@@ -78,6 +80,7 @@ A first-time user understands that the product can search, compare and prepare w
 - [x] Hide Sponsored interaction;
 - [x] Mobile fixed decision bar;
 - [ ] Responsive product imagery and image-source policy;
+- [ ] Live search and extraction adapter interfaces;
 
 Acceptance:
 
