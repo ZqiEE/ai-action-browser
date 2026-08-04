@@ -6,7 +6,7 @@
 
 ## 当前阶段
 
-项目已进入 **第一版 Web 前端交互原型阶段**。
+项目已进入 **第一版 Web 前端交互原型与美国市场验证准备阶段**。
 
 当前分支实现：
 
@@ -23,7 +23,9 @@
 - 路由错误的安全恢复页面；
 - 通用 TextField 与 Status 无障碍组件；
 - 浅色、深色、RTL、强制高对比和减少动态效果；
-- 单元测试、端到端冒烟测试和 GitHub Actions。
+- 单元测试、端到端冒烟测试和 GitHub Actions；
+- GitHub Pages 静态部署流程；
+- AI 成本上限、14 天验证计划与融资材料。
 
 ## 市场定位
 
@@ -69,6 +71,22 @@ npm run test:e2e
 
 原型只使用明确标注的演示数据，不会执行真实搜索、身份验证、付款或购买。
 
+GitHub Pages 部署工作流位于 [`.github/workflows/pages.yml`](.github/workflows/pages.yml)。当仓库 Pages 环境允许 GitHub Actions 发布后，公开地址应为：
+
+`https://zqiee.github.io/ai-action-browser/`
+
+## 当前执行顺序
+
+1. 发布并验证公开 Demo；
+2. 申请 Google Cloud、AWS 与 Microsoft startup credits；
+3. 只验证美国笔记本电脑比较场景；
+4. 招募至少 20 位美国消费者并完成至少 50 次任务；
+5. 测量平均与 p95 任务成本、信任和商家跳转；
+6. 小规模预热相关投资人；
+7. 有真实证据后决定是否正式启动 Pre-seed。
+
+本阶段不继续扩大为完整浏览器、开发者市场、广告竞价平台或真实自动付款。
+
 ## 仓库边界
 
 本仓库为公有主仓库，后续承载：
@@ -89,12 +107,28 @@ npm run test:e2e
 
 ## 文档
 
+### 产品与设计
+
 - [前端设计冻结 v1.0](docs/frontend-design-freeze-v1.0.md)
 - [设计 Token](docs/design-tokens.md)
 - [文字线框](docs/wireframes.md)
 - [交互规范](docs/interaction-spec.md)
 - [全球市场 UI 要求](docs/global-market-ui.md)
+- [无障碍验收清单](docs/accessibility-acceptance.md)
+
+### 成本与验证
+
 - [成本模型 v0.1](docs/cost-model-v0.1.md)
+- [AI 成本政策](docs/launch/ai-cost-policy.md)
+- [14 天美国验证计划](docs/launch/14-day-validation-plan.md)
+- [验证指标模板](docs/launch/validation-metrics-template.md)
+
+### 融资准备
+
+- [投资人 One-pager](docs/fundraising/investor-one-pager.md)
+- [投资人外联材料](docs/fundraising/investor-outreach.md)
+- [Startup Credits 申请清单](docs/fundraising/startup-credits-checklist.md)
+
 - [路线图](ROADMAP.md)
 
 ## 核心原则
@@ -109,3 +143,5 @@ npm run test:e2e
 8. 用户数据最小化收集，默认不用于训练。
 9. 设计服务于全球普通消费者，不要求用户理解 AI、Rust 或协议。
 10. 第一代产品优先完成购物比较与购买准备的完整闭环。
+11. 每个生产 AI 任务必须在执行前拥有搜索、Token、浏览器时间、重试和金额上限。
+12. 用户每次获得 AI 级体验，但系统不为未变化的公共证据重复支付完整推理成本。
