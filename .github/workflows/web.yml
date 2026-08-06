@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - "apps/web/**"
+      - "docs/production-validation.md"
       - ".github/workflows/web.yml"
   push:
     branches: [main]
     paths:
       - "apps/web/**"
+      - "docs/production-validation.md"
       - ".github/workflows/web.yml"
 
 permissions:
