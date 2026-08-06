@@ -1,0 +1,9 @@
+{
+  "eventId": "provider-event-123",
+  "attributionToken": "attr_replace_with_real_token",
+  "status": "completed",
+  "occurredAt": "2026-08-06T12:30:00Z",
+  "evidence": {
+    "providerOrderReference": "ORDER-123"
+  }
+}
