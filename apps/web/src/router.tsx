@@ -15,17 +15,17 @@ class RouteBoundary extends Component<
   { children: ReactNode },
   { error: unknown | null }
 > {
-  state: { error: unknown | null } = { error: null };
+  override state: { error: unknown | null } = { error: null };
 
   static getDerivedStateFromError(error: unknown) {
     return { error };
   }
 
-  componentDidCatch(error: unknown, info: ErrorInfo) {
+  override componentDidCatch(error: unknown, info: ErrorInfo) {
     console.error("route_render_failed", { error, componentStack: info.componentStack });
   }
 
-  render() {
+  override render() {
     return this.state.error ? <RouteErrorPage error={this.state.error} /> : this.props.children;
   }
 }
@@ -33,7 +33,12 @@ class RouteBoundary extends Component<
 function matchDynamic(pathname: string, prefix: string): string | null {
   if (!pathname.startsWith(prefix)) return null;
   const value = pathname.slice(prefix.length);
-  return value && !value.includes("/") ? decodeURIComponent(value) : null;
+  if (!value || value.includes("/")) return null;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
 }
 
 export function AppRouter() {
