@@ -109,7 +109,11 @@ test("consumer can compare, confirm a provider handoff, and view the outcome rec
   await expect(page).toHaveURL(/\/compare\?mode=compare/);
   await expect(page.getByRole("heading", { name: /find a laptop under/i })).toBeVisible();
   await expect(page.getByText(/commission, bids, partner level/i)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Test Laptop" })).toBeVisible();
+  await expect(
+    page
+      .getByLabel("Independent recommendations")
+      .getByRole("heading", { name: "Test Laptop" }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: /prepare with this provider/i }).click();
   await expect(page).toHaveURL(/\/confirm/);
