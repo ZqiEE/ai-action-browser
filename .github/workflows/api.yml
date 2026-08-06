@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - "apps/api/**"
+      - "docs/production-validation.md"
       - ".github/workflows/api.yml"
   push:
     branches: [main]
     paths:
       - "apps/api/**"
+      - "docs/production-validation.md"
       - ".github/workflows/api.yml"
 
 permissions:
