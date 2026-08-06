@@ -1,38 +1,39 @@
 import { Link } from "react-router";
-import { demoProviders } from "@/data/browser";
 
 const providerFeedExample = {
-  schemaVersion: "0.1",
-  provider: {
-    id: "provider-example",
-    name: "Example Provider",
-    domain: "provider.example",
-  },
+  id: "provider-example",
+  name: "Example Provider",
+  domain: "provider.example",
+  active: true,
   offers: [
     {
       id: "offer-123",
-      subject: "Laptop model and configuration",
-      finalPrice: { amount: 949, currency: "USD" },
+      category: "laptop",
+      title: "Laptop model and configuration",
+      description: "Provider-supplied active offer",
+      price: 949,
+      currency: "USD",
       availability: "in_stock",
-      delivery: "2026-08-12",
-      returns: "30 days",
-      warranty: "1 year",
+      deliveryText: "Estimated by Friday",
+      returnsText: "30-day returns",
+      warrantyText: "1-year limited warranty",
       prepareUrl: "https://provider.example/action/offer-123",
+      sourceUrl: "https://provider.example/products/offer-123",
+      evidence: { sourceType: "provider_feed" },
       retrievedAt: "2026-08-06T12:00:00Z",
+      active: true,
     },
   ],
 };
 
 const outcomeExample = {
-  schemaVersion: "0.1",
-  outcomeId: "outcome_example",
+  eventId: "provider-event-123",
   attributionToken: "attr_example",
-  type: "purchase",
   status: "completed",
-  providerId: "provider-example",
-  amount: { value: 949, currency: "USD" },
-  completedAt: "2026-08-06T12:30:00Z",
-  reversalDeadline: "2026-09-05T12:30:00Z",
+  occurredAt: "2026-08-06T12:30:00Z",
+  evidence: {
+    providerOrderReference: "ORDER-123",
+  },
 };
 
 function downloadJson(filename: string, value: unknown) {
@@ -49,30 +50,32 @@ export function ProviderPage() {
   return (
     <div className="provider-page">
       <header className="provider-hero">
-        <p className="eyebrow">Provider outcome connector</p>
-        <h1>Reach users through results, not paid ranking.</h1>
+        <p className="eyebrow">AI browser outcome connector</p>
+        <h1>Reach users through verified results, not paid ranking.</h1>
         <p>
-          AI Action Browser stays free for consumers. Providers can connect structured evidence,
-          receive user-authorized Prepare handoffs, and pay for agreed software or verified
-          outcomes. Commercial terms never enter independent recommendation ranking.
+          AI Action Browser is completely free for consumers. Providers connect active evidence
+          and a user-authorized handoff, then report accepted, completed, cancelled, refunded, or
+          disputed outcomes through a signed event endpoint.
         </p>
         <div className="provider-hero__actions">
-          <Link className="button button--primary" to="/compare?q=laptop&mode=compare">
+          <Link className="button button--primary" to="/compare?q=Find%20a%20laptop%20under%20%241%2C000&mode=compare">
             View the consumer flow
           </Link>
-          <button
+          <a
             className="button button--secondary"
-            type="button"
-            onClick={() => downloadJson("provider-feed-example.json", providerFeedExample)}
+            href="https://github.com/ZqiEE/ai-action-browser/blob/agent/free-ai-browser-outcome-mvp/apps/api/README.md"
+            target="_blank"
+            rel="noreferrer"
           >
-            Download feed example
-          </button>
+            Open integration documentation
+          </a>
         </div>
       </header>
 
       <p className="demo-banner" role="note">
-        Prototype connector only. The providers shown below are demonstration records and do not
-        represent active commercial agreements or live integrations.
+        A commercial provider becomes visible to consumers only after its feed, destination,
+        attribution, outcome contract, privacy boundary, and operational status are verified.
+        Payment does not purchase the independent best-result position.
       </p>
 
       <section className="provider-grid" aria-label="Provider value">
@@ -82,27 +85,27 @@ export function ProviderPage() {
           <ul>
             <li>No consumer subscription or paid recommendation tier.</li>
             <li>No sale of private browsing history, credentials, or payment data.</li>
-            <li>Important actions require readable review and explicit confirmation.</li>
+            <li>Important handoffs require readable review and explicit confirmation.</li>
           </ul>
         </article>
         <article>
           <p className="eyebrow">Provider product</p>
           <h2>Software and outcome connection</h2>
           <ul>
-            <li>Normalized product or service feed.</li>
-            <li>Freshness, conflict, availability, and final-price fields.</li>
-            <li>Prepare handoff or constrained Action endpoint.</li>
-            <li>Attribution, completion, cancellation, refund, and reversal events.</li>
+            <li>Normalized Offer and evidence ingestion.</li>
+            <li>Freshness, availability, final-price, return, and warranty fields.</li>
+            <li>User-confirmed Prepare handoff with a random attribution token.</li>
+            <li>Signed completion, cancellation, refund, and dispute events.</li>
           </ul>
         </article>
         <article>
           <p className="eyebrow">Commercial options</p>
-          <h2>Pay for measurable value</h2>
+          <h2>Pay only for defined value</h2>
           <ul>
-            <li>One-time integration or onboarding.</li>
-            <li>Provider software or connector fee.</li>
+            <li>One-time technical onboarding.</li>
+            <li>Provider connector or software fee.</li>
             <li>Accepted Prepare handoff or qualified activation.</li>
-            <li>Completed transaction commission or merchant-funded user benefit.</li>
+            <li>Completed outcome fee, commission, or user cashback funding.</li>
           </ul>
         </article>
       </section>
@@ -110,16 +113,17 @@ export function ProviderPage() {
       <section className="provider-contract" aria-labelledby="provider-contract-title">
         <div>
           <p className="eyebrow">Result contract</p>
-          <h2 id="provider-contract-title">A fee is tied to an auditable state.</h2>
+          <h2 id="provider-contract-title">Every fee is tied to an auditable state.</h2>
           <p>
-            A production agreement defines success, attribution window, completion evidence,
-            cancellation, refund, reversal, dispute handling, and the minimum reporting data.
+            Before production access, both sides define success, attribution window, completion
+            evidence, cancellation, refund, reversal, dispute handling, settlement timing, and the
+            minimum reporting data.
           </p>
         </div>
         <ol className="outcome-steps">
-          <li><strong>Prepared</strong><span>The browser has a reviewed action ready.</span></li>
+          <li><strong>Prepared</strong><span>The browser has a reviewed provider action ready.</span></li>
           <li><strong>Confirmed</strong><span>The user explicitly authorizes the handoff.</span></li>
-          <li><strong>Accepted</strong><span>The provider accepts the request or order.</span></li>
+          <li><strong>Accepted</strong><span>The provider accepts the attributed request.</span></li>
           <li><strong>Completed</strong><span>The agreed commercial result is reached.</span></li>
           <li><strong>Reversed</strong><span>A cancellation, refund, or dispute reverses settlement.</span></li>
         </ol>
@@ -128,7 +132,7 @@ export function ProviderPage() {
       <section className="provider-examples" aria-label="Connector examples">
         <article>
           <div className="section-heading">
-            <div><p className="eyebrow">Input</p><h2>Provider feed</h2></div>
+            <div><p className="eyebrow">Provider input</p><h2>Offer feed</h2></div>
             <button type="button" onClick={() => downloadJson("provider-feed-example.json", providerFeedExample)}>
               Download JSON
             </button>
@@ -137,7 +141,7 @@ export function ProviderPage() {
         </article>
         <article>
           <div className="section-heading">
-            <div><p className="eyebrow">Output</p><h2>Outcome event</h2></div>
+            <div><p className="eyebrow">Provider callback</p><h2>Outcome event</h2></div>
             <button type="button" onClick={() => downloadJson("outcome-event-example.json", outcomeExample)}>
               Download JSON
             </button>
@@ -146,21 +150,18 @@ export function ProviderPage() {
         </article>
       </section>
 
-      <section className="provider-demo-list" aria-labelledby="demo-providers-title">
-        <p className="eyebrow">Prototype supply</p>
-        <h2 id="demo-providers-title">Demonstration provider records</h2>
-        <div className="provider-list">
-          {demoProviders.map((provider) => (
-            <article key={provider.id}>
-              <div>
-                <h3>{provider.name}</h3>
-                <p>{provider.domain} · {provider.integrationStatus}</p>
-              </div>
-              <ul>{provider.capabilities.map((capability) => <li key={capability}>{capability}</li>)}</ul>
-              <p>{provider.commercialModel}</p>
-            </article>
-          ))}
+      <section className="provider-contract" aria-labelledby="go-live-title">
+        <div>
+          <p className="eyebrow">Go-live requirements</p>
+          <h2 id="go-live-title">What a first provider supplies</h2>
         </div>
+        <ol className="outcome-steps">
+          <li><strong>Feed</strong><span>Active offers and evidence with retrieval timestamps.</span></li>
+          <li><strong>Action</strong><span>An HTTPS destination or constrained Action endpoint.</span></li>
+          <li><strong>Contract</strong><span>A precise billable result and reversal policy.</span></li>
+          <li><strong>Webhook</strong><span>HMAC-signed outcome events with idempotent event ids.</span></li>
+          <li><strong>Review</strong><span>Security, privacy, legal, and recommendation-independence approval.</span></li>
+        </ol>
       </section>
     </div>
   );
