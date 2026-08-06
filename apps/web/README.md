@@ -1,29 +1,34 @@
-# Web Browser-Experience Prototype
+# Production V1 Web Surface
 
-Production-shaped frontend prototype for the AI Action Browser. It uses demonstration data and does not connect to a real search, cross-site execution, merchant, identity, payment, attribution, or settlement service.
+Consumer-facing Web surface for the first production category of AI Action Browser.
 
-## Purpose and product scope
+The application does not contain a production fixture fallback. Live Search, Compare, Prepare, Confirm, attribution, and outcome status are provided by [`../api`](../api). When the API or provider supply is unavailable, the interface reports the failure instead of presenting sample results as live data.
 
-The product category is an **AI browser**.
+## Product scope
 
-This Web application validates the browser's Omniprompt, Search / Compare / Prepare behavior, task state, sourced decision interface, commercial separation, and high-risk confirmation model before a browser extension or desktop shell is built.
+The product category is an **AI browser**. This V1 implements one real bounded task category before the extension and desktop browser shells are built.
 
-The included laptop-shopping flow is the first bounded task vertical. It is not the complete product or long-term product category.
+The first category is U.S. laptop discovery and provider handoff. It exercises:
+
+- normal Web Search;
+- independent provider comparison;
+- natural-language constraint extraction;
+- evidence and retrieval timestamps;
+- explicit Prepare and provider selection;
+- destination and data-sharing review;
+- user-confirmed attributed handoff;
+- provider outcome status and reversal events.
 
 Canonical positioning: [`../../docs/product-positioning.md`](../../docs/product-positioning.md).
 
-## Market and language
-
-- Launch market: United States.
-- Default product language: U.S. English (`en-US`).
-- Demo currency: U.S. dollars.
-- Demo commerce conventions: U.S. tax, delivery, return, address, and payment examples.
-- Global foundation: locale-aware number/date formatting, Unicode content, responsive system fonts, LTR/RTL direction support, and no country-specific assumptions in browser-level component APIs.
-
 ## Requirements
 
-- Node.js 22.12 or newer.
-- npm 10 or newer.
+- Node.js 22.12 or newer;
+- npm 10 or newer;
+- a deployed AI Action Browser API;
+- `VITE_API_BASE_URL` configured to the exact API origin.
+
+Copy `.env.example` to `.env.local` for local development.
 
 ## Commands
 
@@ -38,35 +43,41 @@ npm run test:e2e
 
 ## Routes
 
-- `/` — browser homepage and Omniprompt.
-- `/compare` — first independent task-comparison vertical.
-- `/sources/:sourceId` — readable source detail route.
-- `/confirm` — independent full-screen high-risk confirmation.
+- `/` — browser homepage and Omniprompt;
+- `/search` — live normal Web Search;
+- `/compare` — live independent provider comparison;
+- `/confirm` — full-screen provider handoff review;
+- `/outcomes/:outcomeId` — auditable outcome receipt and provider event status;
+- `/providers` — provider connector and commercial integration contract.
 
-A distinct normal Search result route is still required. Search and Compare must not remain permanently mapped to the same shopping result experience.
-
-## Browser and trust safeguards represented in the prototype
+## Production safeguards
 
 - Search remains the default behavior.
-- Compare and Prepare are explicit user choices.
-- The system may suggest a behavior but cannot silently escalate it.
-- Independent recommendations appear before Sponsored content.
-- Sponsored offers can be hidden and cannot purchase the primary recommendation position.
-- Prices, availability, merchant status, and delivery dates are clearly labeled as demo data.
-- High-risk confirmation is a separate page, not a modal or bottom sheet.
-- System verification is simulated only after the user reviews the destination, order or action, delivery, payment, shared data, and commercial disclosure.
-- Commercial outcome revenue is not implemented and cannot influence recommendation data.
+- Search, Compare, and Prepare are distinct routes and user choices.
+- Production requests never silently fall back to fixtures.
+- Commission, bids, partner tier, and expected revenue are absent from comparison requests and database ordering.
+- Only active provider Offers can appear in the comparison.
+- The provider domain, source URL, retrieval time, amount, shared identifiers, and commercial disclosure are visible before confirmation.
+- Confirm creates a user-authorized handoff; it does not submit payment.
+- A commercial result requires an authenticated provider event.
+- Cancelled, refunded, and disputed events remain part of the same auditable outcome lifecycle.
+- Private browsing history, passwords, cookies, and payment credentials are not included in the handoff.
 
-## Not implemented
+## Test fixtures
 
-- Normal live Web search result route.
-- Current-page, tab, or extension context.
-- Live search or extraction.
-- Cross-site task execution.
-- Real merchant or provider integrations.
-- Real identity or payment verification.
-- Real purchase or other Commit execution.
-- Outcome attribution, reversal, dispute, or settlement.
-- Account creation or synchronization.
-- Production localization content.
-- Desktop browser shell.
+Fixtures are allowed only in unit tests, Playwright request interception, and explicit local provider test data. They must never be enabled as an automatic production fallback.
+
+## Remaining launch requirements
+
+The code is not a live production business until all of the following are completed:
+
+- deploy Cloudflare Worker and D1;
+- configure Brave Search credentials and spend limits;
+- configure exact allowed Web origins;
+- create provider administration and webhook secrets;
+- connect and verify at least one real provider, network, Feed, sandbox, affiliate approval, or commercial integration;
+- publish privacy, terms, provider contract, deletion, and support contacts;
+- configure operational monitoring, alerts, incident handling, abuse controls, and backups;
+- verify the public Web and API URLs on desktop and mobile.
+
+The extension, current-tab context, unrestricted cross-site automation, automatic payment, account synchronization, and desktop browser shell remain later stages.
