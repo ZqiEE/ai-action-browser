@@ -1,12 +1,12 @@
-import { isRouteErrorResponse, Link, useRouteError } from "react-router";
 import { Status } from "@/components/FormPrimitives";
+import { Link } from "@/lib/navigation";
 
-export function RouteErrorPage() {
-  const error = useRouteError();
-  const title = isRouteErrorResponse(error) ? `${error.status} ${error.statusText}` : "This page could not be opened";
-  const detail = isRouteErrorResponse(error)
-    ? "The requested route returned an error. Your task has not been executed."
-    : "An unexpected interface error occurred. No purchase, submission, or other external action was performed.";
+export function RouteErrorPage({ error }: { error?: unknown }) {
+  const title = "This page could not be opened";
+  const detail =
+    error instanceof Error && error.message
+      ? error.message
+      : "An unexpected interface error occurred. No purchase, submission, or other external action was performed.";
 
   return (
     <main className="route-error">
