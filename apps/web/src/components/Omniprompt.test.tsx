@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router";
+import { beforeEach, describe, expect, it } from "vitest";
 import { Omniprompt } from "@/components/Omniprompt";
+import { HashRouter, useLocation } from "@/lib/navigation";
 
 function LocationProbe() {
   const location = useLocation();
@@ -10,23 +10,18 @@ function LocationProbe() {
 }
 
 describe("Omniprompt", () => {
+  beforeEach(() => {
+    window.history.replaceState(null, "", `${window.location.pathname}#/`);
+  });
+
   it("keeps Search as default and lets the user choose Compare with the keyboard", async () => {
     const user = userEvent.setup();
 
     render(
-      <MemoryRouter initialEntries={["/"]}>
-        <Routes>
-          <Route
-            path="*"
-            element={
-              <>
-                <Omniprompt initialValue="Compare laptops under $1,000" />
-                <LocationProbe />
-              </>
-            }
-          />
-        </Routes>
-      </MemoryRouter>,
+      <HashRouter>
+        <Omniprompt initialValue="Compare laptops under $1,000" />
+        <LocationProbe />
+      </HashRouter>,
     );
 
     const input = screen.getByRole("textbox", { name: /search, compare, or prepare/i });
