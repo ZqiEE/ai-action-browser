@@ -31,3 +31,5 @@ jobs:
         run: npm install --ignore-scripts
       - name: Typecheck Worker
         run: npm run typecheck
+      - name: Security and contract tests
+        run: npm test
