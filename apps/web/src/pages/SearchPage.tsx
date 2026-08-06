@@ -1,10 +1,41 @@
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Omniprompt } from "@/components/Omniprompt";
-import { demoSearchResults } from "@/data/browser";
+import { ApiError, searchWeb, type LiveSearchResponse } from "@/lib/api";
 
 export function SearchPage() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q")?.trim() || "AI browser";
+  const [result, setResult] = useState<LiveSearchResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    searchWeb(query)
+      .then((value) => {
+        if (active) setResult(value);
+      })
+      .catch((reason: unknown) => {
+        if (!active) return;
+        setError(
+          reason instanceof ApiError
+            ? reason.message
+            : "Live search could not be completed. No fixture results were substituted.",
+        );
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [query]);
 
   return (
     <div className="browser-result-page">
@@ -13,56 +44,69 @@ export function SearchPage() {
         <h1>Search results</h1>
         <p>
           Search does not silently visit multiple sites, fill forms, or prepare a transaction.
-          Choose Compare or Prepare explicitly when you want the browser to do more.
+          Choose Compare explicitly when you want the browser to gather and rank provider evidence.
         </p>
       </header>
 
       <Omniprompt initialValue={query} compact />
 
-      <p className="demo-banner" role="note">
-        Demonstration results only. The live search and extraction service is not connected yet.
-      </p>
+      {loading && (
+        <div className="task-loading" role="status" aria-live="polite">
+          <span className="spinner" aria-hidden="true" />
+          <span>Searching the live Web…</span>
+        </div>
+      )}
 
-      <div className="browser-result-layout">
-        <main className="search-results" aria-label={`Results for ${query}`}>
-          <p className="search-results__summary">Showing demo web results for “{query}”</p>
-          {demoSearchResults.map((result) => (
-            <article className="search-result" key={result.id}>
-              <p className="search-result__url">{result.displayUrl}</p>
-              <h2>
-                <a href={result.url} target="_blank" rel="noreferrer">
-                  {result.title}
-                </a>
-              </h2>
-              <p>{result.snippet}</p>
-              <div className="search-result__meta">
-                <span>{result.sourceType}</span>
-                <span>Demo evidence · {new Date(result.retrievedAt).toLocaleString()}</span>
-              </div>
-            </article>
-          ))}
-        </main>
+      {error && (
+        <div className="inline-alert inline-alert--danger" role="alert">
+          <strong>Search unavailable</strong>
+          <p>{error}</p>
+          <p>The browser did not replace the failed request with demonstration results.</p>
+        </div>
+      )}
 
-        <aside className="browser-action-panel" aria-label="Continue this browser task">
-          <p className="eyebrow">Do more with this goal</p>
-          <h2>Keep Search as Search</h2>
-          <p>
-            The browser only moves into comparison or task preparation after you choose it.
-          </p>
-          <Link
-            className="button button--primary"
-            to={`/compare?mode=compare&q=${encodeURIComponent(query)}`}
-          >
-            Compare with evidence
-          </Link>
-          <Link
-            className="button button--secondary"
-            to={`/confirm?from=search&q=${encodeURIComponent(query)}`}
-          >
-            Prepare a demo action
-          </Link>
-        </aside>
-      </div>
+      {result && (
+        <div className="browser-result-layout">
+          <main className="search-results" aria-label={`Results for ${query}`}>
+            <p className="search-results__summary">
+              {result.results.length} live results for “{result.query}” · {result.durationMs} ms
+            </p>
+            {result.results.map((item) => (
+              <article className="search-result" key={item.id}>
+                <p className="search-result__url">{item.displayUrl}</p>
+                <h2>
+                  <a href={item.url} target="_blank" rel="noreferrer">
+                    {item.title}
+                  </a>
+                </h2>
+                <p>{item.snippet}</p>
+                <div className="search-result__meta">
+                  <span>{item.sourceType}</span>
+                  <span>{item.age || "Live search result"}</span>
+                </div>
+              </article>
+            ))}
+          </main>
+
+          <aside className="browser-action-panel" aria-label="Continue this browser task">
+            <p className="eyebrow">Do more with this goal</p>
+            <h2>Compare provider evidence</h2>
+            <p>
+              Compare creates a separate task, reads only active provider offers, and ranks them
+              without commission, bids, partner level, or expected revenue.
+            </p>
+            <Link
+              className="button button--primary"
+              to={`/compare?mode=compare&q=${encodeURIComponent(query)}`}
+            >
+              Compare with evidence
+            </Link>
+            <Link className="button button--secondary" to="/">
+              Start a different task
+            </Link>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }
