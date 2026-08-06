@@ -1,0 +1,17 @@
+name = "ai-action-browser-api"
+main = "src/index.ts"
+compatibility_date = "2026-07-24"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGIN = "https://zqiee.github.io"
+OPENAI_MODEL = ""
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ai-action-browser"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[observability]
+enabled = true
