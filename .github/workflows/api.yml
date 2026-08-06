@@ -29,7 +29,16 @@ jobs:
           cache-dependency-path: apps/api/package.json
       - name: Install dependencies
         run: npm install --ignore-scripts
+      - name: Upload generated package lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-package-lock
+          path: apps/api/package-lock.json
+          if-no-files-found: error
+          retention-days: 1
       - name: Typecheck Worker
         run: npm run typecheck
       - name: Security and contract tests
         run: npm test
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
