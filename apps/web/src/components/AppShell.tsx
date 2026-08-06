@@ -26,8 +26,8 @@ export function AppShell() {
           <span className="wordmark__mark" aria-hidden="true" />
           <span>Action Browser</span>
         </Link>
-        <nav className="site-header__actions" aria-label="Account and appearance">
-          <button type="button" className="text-action">Sign in</button>
+        <nav className="site-header__actions" aria-label="Product and appearance">
+          <Link to="/providers" className="text-link">For providers</Link>
           <IconButton
             label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
