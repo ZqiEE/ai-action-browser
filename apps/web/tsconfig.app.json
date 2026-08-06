@@ -13,7 +13,8 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "react-router": ["./src/lib/navigation.tsx"]
     },
     "resolveJsonModule": true,
     "isolatedModules": true,
