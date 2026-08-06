@@ -31,6 +31,8 @@ The Web application uses a small native Hash Router instead of the vulnerable Re
 - `#/sources/:sourceId`
 - `#/outcomes/:outcomeId`
 
+Malformed encoded dynamic paths must recover to the safe not-found route instead of crashing the application.
+
 ## Runtime safety gates
 
 - production never substitutes fixture offers or outcomes;
