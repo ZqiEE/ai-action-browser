@@ -1,8 +1,104 @@
 import { expect, test } from "@playwright/test";
 
-test("U.S. consumer can compare and review a prepared purchase", async ({ page }) => {
-  await page.goto("/");
+const recommendation = {
+  id: "offer-test-1",
+  providerId: "provider-test",
+  providerName: "Test Provider",
+  providerDomain: "provider.test",
+  category: "laptop",
+  title: "Test Laptop",
+  description: "Active provider offer for contract testing.",
+  price: 949,
+  currency: "USD",
+  availability: "in_stock",
+  delivery: "Estimated by Friday",
+  returns: "30-day returns",
+  warranty: "1-year limited warranty",
+  sourceUrl: "https://provider.test/products/test-laptop",
+  retrievedAt: "2026-08-06T12:00:00Z",
+  strengths: ["Fits the stated budget.", "Provider reports the item in stock."],
+  tradeoffs: ["Returns: 30-day returns.", "Warranty: 1-year limited warranty."],
+  evidence: { sourceType: "provider_feed" },
+  recommendationIndependent: true,
+};
 
+const outcome = {
+  id: "outcome-test-1",
+  taskId: "task-test-1",
+  offerId: recommendation.id,
+  offerTitle: recommendation.title,
+  providerId: recommendation.providerId,
+  providerName: recommendation.providerName,
+  providerDomain: recommendation.providerDomain,
+  attributionToken: "attr-test-1",
+  status: "confirmed",
+  amount: recommendation.price,
+  currency: recommendation.currency,
+  userConfirmed: true,
+  handoffUrl: "https://provider.test/action?attr=attr-test-1",
+  completionEvidence: null,
+  reversalDeadline: "2026-09-05T12:00:00Z",
+  createdAt: "2026-08-06T12:00:00Z",
+  updatedAt: "2026-08-06T12:01:00Z",
+};
+
+test("consumer can compare, confirm a provider handoff, and view the outcome receipt", async ({ page }) => {
+  await page.route("https://api.contract.test/v1/compare", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        taskId: "task-test-1",
+        query: "Find a laptop under $1,000 for video editing, delivered by next week, with free returns.",
+        category: "laptop",
+        constraints: {
+          budget: 1000,
+          useCase: "video editing",
+          delivery: "by next week",
+          returns: "free returns",
+        },
+        recommendations: [recommendation],
+        incomplete: false,
+        recommendationPolicy: {
+          commissionUsedForRanking: false,
+          bidsUsedForRanking: false,
+          expectedRevenueUsedForRanking: false,
+        },
+      }),
+    });
+  });
+
+  await page.route("https://api.contract.test/v1/prepare", async (route) => {
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({
+        outcomeId: outcome.id,
+        taskId: outcome.taskId,
+        status: "prepared",
+        offer: recommendation,
+        attributionToken: outcome.attributionToken,
+        handoffUrl: outcome.handoffUrl,
+        reversalDeadline: outcome.reversalDeadline,
+        userConfirmationRequired: true,
+      }),
+    });
+  });
+
+  await page.route("https://api.contract.test/v1/outcomes/outcome-test-1/confirm", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ outcome, continueUrl: outcome.handoffUrl }),
+    });
+  });
+
+  await page.route("https://api.contract.test/v1/outcomes/outcome-test-1", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ outcome, events: [] }),
+    });
+  });
+
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: /what do you want to find or get done/i })).toBeVisible();
 
   const prompt = page.getByRole("textbox", { name: /search, compare, or prepare/i });
@@ -12,14 +108,17 @@ test("U.S. consumer can compare and review a prepared purchase", async ({ page }
 
   await expect(page).toHaveURL(/\/compare\?mode=compare/);
   await expect(page.getByRole("heading", { name: /find a laptop under/i })).toBeVisible();
-  await expect(page.getByText(/demo data for interface testing/i)).toBeVisible();
+  await expect(page.getByText(/commission, bids, partner level/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Test Laptop" })).toBeVisible();
 
-  await page.getByRole("button", { name: /prepare to buy/i }).click();
+  await page.getByRole("button", { name: /prepare with this provider/i }).click();
   await expect(page).toHaveURL(/\/confirm/);
-  await expect(page.getByRole("heading", { name: /review and confirm/i })).toBeVisible();
-  await expect(page.getByText("bestbuy.com", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /review the provider handoff/i })).toBeVisible();
+  await expect(page.getByText("provider.test", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: /confirm with system verification/i }).click();
-  await expect(page.getByRole("heading", { name: /purchase preparation completed/i })).toBeVisible();
-  await expect(page.getByText(/no real order or payment was submitted/i)).toBeVisible();
+  await page.getByRole("button", { name: /confirm handoff to test provider/i }).click();
+  await expect(page).toHaveURL(/\/outcomes\/outcome-test-1/);
+  await expect(page.getByRole("heading", { name: /provider handoff recorded/i })).toBeVisible();
+  await expect(page.getByText("attr-test-1", { exact: true })).toBeVisible();
+  await expect(page.getByText(/no authenticated provider event/i)).toBeVisible();
 });
