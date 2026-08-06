@@ -23,19 +23,19 @@ const modeOptions: ModeOption[] = [
   {
     id: "search",
     label: "Search the web",
-    description: "Open normal web results.",
+    description: "Open normal web results without cross-site action.",
     icon: <SearchIcon />,
   },
   {
     id: "compare",
     label: "Compare options",
-    description: "Review sources and explain the trade-offs.",
+    description: "Review multiple sources and explain the trade-offs.",
     icon: <CompareIcon />,
   },
   {
     id: "prepare",
     label: "Prepare this task",
-    description: "Prepare the steps, then ask before anything important.",
+    description: "Prepare the next step, then ask before anything important.",
     icon: <PrepareIcon />,
   },
 ];
@@ -67,12 +67,17 @@ export function Omniprompt({ initialValue = "", compact = false }: OmnipromptPro
     const query = value.trim();
     if (!query) return;
 
-    if (mode === "prepare") {
-      navigate(`/confirm?from=home&q=${encodeURIComponent(query)}`);
+    if (mode === "search") {
+      navigate(`/search?q=${encodeURIComponent(query)}`);
       return;
     }
 
-    navigate(`/compare?mode=${mode}&q=${encodeURIComponent(query)}`);
+    if (mode === "compare") {
+      navigate(`/compare?mode=compare&q=${encodeURIComponent(query)}`);
+      return;
+    }
+
+    navigate(`/confirm?from=home&q=${encodeURIComponent(query)}`);
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
