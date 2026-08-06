@@ -1,12 +1,20 @@
 # AI Action Browser API
 
-Production runtime for the first free AI browser category. This Worker provides live Web search, provider Offer ingestion, deterministic independent comparison, user-controlled Prepare and Confirm, attribution, and provider outcome events.
+Production runtime for the first free AI browser category. This Worker provides live Web search, provider Offer ingestion, deterministic independent comparison, user-controlled Prepare and Confirm, attribution, and authenticated provider outcome events.
+
+The machine-readable contract is [`openapi.yaml`](openapi.yaml).
 
 ## Production guarantees
 
 - Consumer endpoints do not accept commission, bid, partner tier, or expected-revenue inputs.
 - Provider administration requires a server-side bearer token.
 - Provider outcome events require an HMAC-SHA256 signature.
+- A provider event cannot create a commercial result before the consumer confirms the handoff.
+- Outcome transitions are deterministic and reject invalid rewrites such as `cancelled → completed`.
+- Provider Offer links must use HTTPS on the registered provider hostname or one of its subdomains.
+- Search results are limited to public HTTP/HTTPS URLs without embedded credentials.
+- JSON bodies and evidence objects have explicit size limits.
+- Brave Search and optional OpenAI requests have hard timeouts.
 - No production endpoint silently falls back to fixture results.
 - OpenAI is optional and is used only for bounded natural-language constraint extraction when configured.
 - Responses API requests use `store: false`.
@@ -38,7 +46,7 @@ npx wrangler secret put PROVIDER_WEBHOOK_SECRET
 npx wrangler secret put OPENAI_API_KEY
 ```
 
-Set `OPENAI_MODEL` only when an approved model and budget are configured. Set `ALLOWED_ORIGIN` to a comma-separated list of the exact Web application origins.
+Set `OPENAI_MODEL` only when an approved model and budget are configured. Set `ALLOWED_ORIGIN` to a comma-separated list of exact Web application origins.
 
 Apply the database migration:
 
@@ -50,6 +58,7 @@ Validate and deploy:
 
 ```bash
 npm run typecheck
+npm test
 npm run deploy
 ```
 
@@ -71,6 +80,7 @@ Send `Authorization: Bearer $PROVIDER_ADMIN_TOKEN`.
 ```http
 POST /v1/providers
 Content-Type: application/json
+Authorization: Bearer <provider-admin-token>
 
 {
   "id": "provider-example",
@@ -80,11 +90,14 @@ Content-Type: application/json
 }
 ```
 
+The domain is a hostname only. Do not include a scheme, path, port, or credentials.
+
 ### Upsert provider offers
 
 ```http
 POST /v1/providers/provider-example/offers
 Content-Type: application/json
+Authorization: Bearer <provider-admin-token>
 
 {
   "offers": [
@@ -111,9 +124,11 @@ Content-Type: application/json
 }
 ```
 
+`prepareUrl` and `sourceUrl` must use HTTPS and the registered provider hostname or one of its subdomains. The service rejects unrelated redirect and tracking domains unless they are explicitly registered as part of the provider domain design.
+
 ## Provider outcome webhook
 
-Providers send JSON to `POST /v1/provider-events` and sign the exact request body with HMAC-SHA256 using `PROVIDER_WEBHOOK_SECRET`.
+Providers send JSON to `POST /v1/provider-events` and sign the exact UTF-8 request body with HMAC-SHA256 using `PROVIDER_WEBHOOK_SECRET`.
 
 Header:
 
@@ -121,7 +136,16 @@ Header:
 X-AAB-Signature: sha256=<lowercase hex digest>
 ```
 
-Body:
+Example body: [`examples/provider-event.json`](examples/provider-event.json).
+
+Generate the exact header locally:
+
+```bash
+PROVIDER_WEBHOOK_SECRET='<shared-secret>' \
+  npm run sign:event -- examples/provider-event.json
+```
+
+The body format is:
 
 ```json
 {
@@ -135,8 +159,39 @@ Body:
 }
 ```
 
-Allowed statuses are `accepted`, `completed`, `cancelled`, `refunded`, and `disputed`. Provider event ids are idempotent. Cancellation, refund, and dispute events update the same outcome rather than creating a second commercial result.
+Allowed provider statuses are `accepted`, `completed`, `cancelled`, `refunded`, and `disputed`. Provider event ids are idempotent.
+
+### Outcome state rules
+
+```text
+prepared
+  └─ consumer confirmation → confirmed
+
+confirmed → accepted | completed | cancelled | disputed
+accepted  → completed | cancelled | disputed
+completed → refunded | disputed
+disputed  → completed | refunded | cancelled
+```
+
+`prepared` outcomes reject every provider result event. `cancelled` and `refunded` are terminal in V1. Cancellation, refund, and dispute events update the same outcome rather than creating a second commercial result.
+
+## Security and contract tests
+
+```bash
+npm test
+```
+
+The API test suite covers:
+
+- non-HTTPS and cross-domain Offer URLs;
+- embedded URL credentials;
+- unsafe public search protocols;
+- invalid and far-future timestamps;
+- oversized evidence;
+- provider events before consumer confirmation;
+- invalid commercial state transitions;
+- idempotent same-state events.
 
 ## Not yet production-complete
 
-Deployment still requires real service credentials, a real D1 database id, privacy and terms URLs, operational alerting, abuse controls, and at least one signed provider or affiliate integration. The repository never claims these are active until they are configured and verified.
+Deployment still requires real service credentials, a real D1 database id, privacy and terms URLs, operational alerting, rate limits, backups, and at least one signed provider or affiliate integration. The repository never claims these are active until they are configured and verified.
