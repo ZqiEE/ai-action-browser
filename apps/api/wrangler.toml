@@ -13,5 +13,8 @@ database_name = "ai-action-browser"
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
 migrations_dir = "migrations"
 
+[triggers]
+crons = ["17 * * * *"]
+
 [observability]
 enabled = true
