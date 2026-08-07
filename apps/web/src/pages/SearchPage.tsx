@@ -2,20 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Omniprompt } from "@/components/Omniprompt";
 import { ApiError, searchWeb, type LiveSearchResponse } from "@/lib/api";
-import {
-  addBrowserPageContext,
-  contextualizeGoal,
-  readBrowserPageContext,
-} from "@/lib/browserContext";
+import { addBrowserPageContext, readBrowserPageContext } from "@/lib/browserContext";
 
 export function SearchPage() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q")?.trim() || "AI browser";
   const pageContext = useMemo(() => readBrowserPageContext(searchParams), [searchParams]);
-  const requestQuery = useMemo(
-    () => contextualizeGoal(query, pageContext, 500),
-    [pageContext, query],
-  );
   const compareUrl = useMemo(() => {
     const params = addBrowserPageContext(
       new URLSearchParams({ mode: "compare", q: query }),
@@ -33,7 +25,7 @@ export function SearchPage() {
     setError(null);
     setResult(null);
 
-    searchWeb(requestQuery)
+    searchWeb(query, pageContext)
       .then((value) => {
         if (active) setResult(value);
       })
@@ -52,7 +44,7 @@ export function SearchPage() {
     return () => {
       active = false;
     };
-  }, [requestQuery]);
+  }, [pageContext, query]);
 
   return (
     <div className="browser-result-page">
@@ -69,9 +61,12 @@ export function SearchPage() {
 
       {pageContext && (
         <div className="inline-alert" role="note">
-          <strong>Using current page context</strong>
+          <strong>Using current page context for this request</strong>
           <p>{pageContext.title} · {pageContext.hostname}</p>
-          <p>The browser extension supplied only the page title and privacy-bounded URL you chose to include.</p>
+          <p>
+            The page title and privacy-bounded URL are sent as transient request context. They are
+            not merged into the user goal.
+          </p>
         </div>
       )}
 
