@@ -1,5 +1,5 @@
 import { extractConstraints } from "./constraints";
-import { cleanText, json, normalizeCategory, readJson } from "./http";
+import { ApiError, cleanText, json, normalizeCategory, readJson } from "./http";
 import { rankOffersForGoal } from "./relevance";
 import { id, nowIso } from "./security";
 import type { CompareRequest, Constraints, Env, OfferRow } from "./types";
@@ -85,14 +85,7 @@ async function readActiveOffers(env: Env, category: string | null): Promise<Offe
 export async function compareOffers(request: Request, env: Env): Promise<Response> {
   const body = await readJson<CompareRequest>(request, 32 * 1024);
   const query = cleanText(body.query, 1_000);
-  if (!query) {
-    return json(
-      request,
-      env,
-      { error: { code: "invalid_query", message: "A comparison goal is required." } },
-      400,
-    );
-  }
+  if (!query) throw new ApiError(400, "invalid_query", "A comparison goal is required.");
 
   const rawCategory = cleanText(body.category, 80);
   const requestedCategory = rawCategory ? normalizeCategory(rawCategory) : null;
