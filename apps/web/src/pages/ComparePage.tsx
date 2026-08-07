@@ -22,9 +22,9 @@ function conditionRows(result: LiveCompareResponse) {
       label: "Budget",
       value: result.constraints.budget === null ? "Not specified" : `Up to $${result.constraints.budget}`,
     },
-    { id: "use", label: "Use", value: result.constraints.useCase },
-    { id: "delivery", label: "Delivery", value: result.constraints.delivery },
-    { id: "returns", label: "Returns", value: result.constraints.returns },
+    { id: "use", label: "Purpose", value: result.constraints.useCase },
+    { id: "delivery", label: "Timing", value: result.constraints.delivery },
+    { id: "returns", label: "Return / refund", value: result.constraints.returns },
   ];
   return rows.filter((row) => row.value && row.value !== "not specified");
 }
@@ -34,14 +34,25 @@ function sourceAge(retrievedAt: string): string {
   return Number.isNaN(value.getTime()) ? "Retrieval time unavailable" : value.toLocaleString();
 }
 
+function providerFacts(offer: LiveRecommendation) {
+  const facts = [
+    { label: "Category", value: offer.category },
+    { label: "Availability", value: offer.availability },
+    { label: "Timing / delivery", value: offer.delivery },
+    { label: "Return / refund", value: offer.returns },
+    { label: "Warranty / service", value: offer.warranty },
+  ];
+  return facts.filter((fact) => fact.value?.trim());
+}
+
 export function ComparePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const locale = resolveLocale();
-  const query = searchParams.get("q")?.trim() || "laptop for video editing";
+  const query = searchParams.get("q")?.trim() ?? "";
   const pageContext = useMemo(() => readBrowserPageContext(searchParams), [searchParams]);
   const requestQuery = useMemo(
-    () => contextualizeGoal(query, pageContext, 1_000),
+    () => (query ? contextualizeGoal(query, pageContext, 1_000) : ""),
     [pageContext, query],
   );
   const normalSearchUrl = useMemo(() => {
@@ -50,11 +61,21 @@ export function ComparePage() {
   }, [pageContext, query]);
   const [result, setResult] = useState<LiveCompareResponse | null>(null);
   const [selectedId, setSelectedId] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(Boolean(query));
+  const [error, setError] = useState<string | null>(query ? null : "Enter a goal before starting Compare.");
 
   useEffect(() => {
     let active = true;
+    if (!requestQuery) {
+      setLoading(false);
+      setResult(null);
+      setSelectedId("");
+      setError("Enter a goal before starting Compare.");
+      return () => {
+        active = false;
+      };
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
@@ -71,7 +92,7 @@ export function ComparePage() {
         setError(
           reason instanceof ApiError
             ? reason.message
-            : "The independent provider comparison could not be completed.",
+            : "The independent Provider comparison could not be completed.",
         );
       })
       .finally(() => {
@@ -94,7 +115,7 @@ export function ComparePage() {
       <section className="comparison-command" aria-label="Current comparison">
         <div>
           <p className="eyebrow">Independent comparison</p>
-          <h1>{query}</h1>
+          <h1>{query || "Compare Provider evidence"}</h1>
         </div>
         <Button variant="secondary" onClick={() => navigate("/")}>Change request</Button>
       </section>
@@ -108,14 +129,14 @@ export function ComparePage() {
       )}
 
       <p className="demo-banner" role="note">
-        Provider commission, bids, partner level, and expected revenue are not available to the
-        ranking query. Only active offers and user constraints are used.
+        Provider commission, bids, partner level, and expected revenue are unavailable to ranking.
+        Compare uses the user goal and active Provider evidence only.
       </p>
 
       {loading && (
         <div className="task-loading" role="status" aria-live="polite">
           <span className="spinner" aria-hidden="true" />
-          <span>Reading live provider offers and applying your conditions…</span>
+          <span>Matching active Provider evidence to your goal…</span>
         </div>
       )}
 
@@ -129,8 +150,8 @@ export function ComparePage() {
 
       {result && result.recommendations.length === 0 && (
         <div className="empty-state" role="status">
-          <h2>No active provider offers</h2>
-          <p>{result.message ?? "The first production category does not have live supply yet."}</p>
+          <h2>No relevant active Provider offers</h2>
+          <p>{result.message ?? "No current Provider evidence matched this goal."}</p>
           <Button variant="secondary" onClick={() => navigate(normalSearchUrl)}>
             Use normal Search
           </Button>
@@ -139,13 +160,15 @@ export function ComparePage() {
 
       {result && selected && (
         <>
-          <section className="condition-bar" aria-label="Extracted comparison conditions">
-            {conditionRows(result).map((condition) => (
-              <div className="condition-control" key={condition.id}>
-                <span><small>{condition.label}</small><strong>{condition.value}</strong></span>
-              </div>
-            ))}
-          </section>
+          {conditionRows(result).length > 0 && (
+            <section className="condition-bar" aria-label="Extracted comparison conditions">
+              {conditionRows(result).map((condition) => (
+                <div className="condition-control" key={condition.id}>
+                  <span><small>{condition.label}</small><strong>{condition.value}</strong></span>
+                </div>
+              ))}
+            </section>
+          )}
 
           <div className="comparison-layout">
             <main className="comparison-results" aria-label="Independent recommendations">
@@ -155,18 +178,18 @@ export function ComparePage() {
                   <div>
                     <p className="eyebrow">{selected.providerName} · {selected.providerDomain}</p>
                     <h2>{selected.title}</h2>
-                    <p className="product-headline">{selected.description || "Provider-supplied active offer."}</p>
+                    <p className="product-headline">{selected.description || "Provider-supplied active evidence."}</p>
                   </div>
                   <div className="product-price">
                     <strong>{formatCurrency(selected.price, selected.currency, locale)}</strong>
-                    <span>Provider final-price field</span>
+                    <span>Provider amount</span>
                   </div>
                 </div>
 
                 <div className="decision-reason">
                   <h3>Why this appears first</h3>
                   <p>
-                    It is the strongest active match returned after applying the extracted conditions.
+                    It is the strongest current relevance match after applying explicit conditions.
                     Commercial terms were not part of the ranking input.
                   </p>
                 </div>
@@ -187,14 +210,14 @@ export function ComparePage() {
                 </div>
 
                 <dl className="product-metadata">
-                  <div><dt>Delivery</dt><dd>{selected.delivery || "Not supplied"}</dd></div>
-                  <div><dt>Returns</dt><dd>{selected.returns || "Not supplied"}</dd></div>
-                  <div><dt>Warranty</dt><dd>{selected.warranty || "Not supplied"}</dd></div>
+                  {providerFacts(selected).map((fact) => (
+                    <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>
+                  ))}
                 </dl>
 
                 <div className="citations" aria-label="Provider evidence source">
                   <span>Evidence</span>
-                  <a href={selected.sourceUrl} target="_blank" rel="noreferrer">Open provider source</a>
+                  <a href={selected.sourceUrl} target="_blank" rel="noreferrer">Open Provider source</a>
                   <small>Retrieved {sourceAge(selected.retrievedAt)}</small>
                 </div>
               </article>
@@ -213,9 +236,9 @@ export function ComparePage() {
                           <p>{offer.description || offer.availability}</p>
                         </div>
                         <dl>
-                          <div><dt>Price</dt><dd>{formatCurrency(offer.price, offer.currency, locale)}</dd></div>
-                          <div><dt>Delivery</dt><dd>{offer.delivery || "Not supplied"}</dd></div>
-                          <div><dt>Main check</dt><dd>{offer.tradeoffs[0] ?? "Review provider evidence"}</dd></div>
+                          <div><dt>Amount</dt><dd>{formatCurrency(offer.price, offer.currency, locale)}</dd></div>
+                          <div><dt>Category</dt><dd>{offer.category}</dd></div>
+                          <div><dt>Main check</dt><dd>{offer.tradeoffs[0] ?? "Review Provider evidence"}</dd></div>
                         </dl>
                         <Button variant="secondary" onClick={() => setSelectedId(offer.id)}>Make main choice</Button>
                       </article>
@@ -231,8 +254,8 @@ export function ComparePage() {
               <p className="decision-summary__price">{formatCurrency(selected.price, selected.currency, locale)}</p>
               <ul>
                 <li>{selected.providerName}</li>
-                <li>{selected.delivery || "Delivery not supplied"}</li>
-                <li>{selected.returns || "Returns not supplied"}</li>
+                <li>{selected.category}</li>
+                <li>{selected.availability || "Availability not supplied"}</li>
               </ul>
               <Button
                 variant="primary"
@@ -240,10 +263,10 @@ export function ComparePage() {
                   `/confirm?offer=${encodeURIComponent(selected.id)}&task=${encodeURIComponent(result.taskId)}&q=${encodeURIComponent(query)}`,
                 )}
               >
-                Prepare with this provider
+                Prepare with this Provider
               </Button>
               <p className="confirmation-note">
-                This creates an attributed prepared outcome. The provider handoff opens only after
+                This creates an attributed prepared outcome. The Provider handoff opens only after
                 you review the destination and explicitly confirm.
               </p>
             </aside>
