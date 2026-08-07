@@ -15,12 +15,14 @@ const recommendation = {
   returns: "30-day returns",
   warranty: "1-year limited warranty",
   sourceUrl: "https://provider.test/products/test-laptop",
-  retrievedAt: "2026-08-06T12:00:00Z",
+  retrievedAt: "2026-08-07T12:00:00Z",
   strengths: ["Fits the stated budget.", "Provider reports the item in stock."],
   tradeoffs: ["Returns: 30-day returns.", "Warranty: 1-year limited warranty."],
   evidence: { sourceType: "provider_feed" },
   recommendationIndependent: true,
 };
+
+const continueUrl = "https://provider.test/action?attr=attr-test-1";
 
 const outcome = {
   id: "outcome-test-1",
@@ -30,16 +32,14 @@ const outcome = {
   providerId: recommendation.providerId,
   providerName: recommendation.providerName,
   providerDomain: recommendation.providerDomain,
-  attributionToken: "attr-test-1",
   status: "confirmed",
   amount: recommendation.price,
   currency: recommendation.currency,
   userConfirmed: true,
-  handoffUrl: "https://provider.test/action?attr=attr-test-1",
   completionEvidence: null,
-  reversalDeadline: "2026-09-05T12:00:00Z",
-  createdAt: "2026-08-06T12:00:00Z",
-  updatedAt: "2026-08-06T12:01:00Z",
+  reversalDeadline: "2026-09-06T12:00:00Z",
+  createdAt: "2026-08-07T12:00:00Z",
+  updatedAt: "2026-08-07T12:01:00Z",
 };
 
 test("consumer can compare, confirm a provider handoff, and view the outcome receipt", async ({ page }) => {
@@ -76,8 +76,6 @@ test("consumer can compare, confirm a provider handoff, and view the outcome rec
         taskId: outcome.taskId,
         status: "prepared",
         offer: recommendation,
-        attributionToken: outcome.attributionToken,
-        handoffUrl: outcome.handoffUrl,
         reversalDeadline: outcome.reversalDeadline,
         userConfirmationRequired: true,
       }),
@@ -87,7 +85,7 @@ test("consumer can compare, confirm a provider handoff, and view the outcome rec
   await page.route("https://api.contract.test/v1/outcomes/outcome-test-1/confirm", async (route) => {
     await route.fulfill({
       contentType: "application/json",
-      body: JSON.stringify({ outcome, continueUrl: outcome.handoffUrl }),
+      body: JSON.stringify({ outcome, continueUrl }),
     });
   });
 
@@ -123,6 +121,10 @@ test("consumer can compare, confirm a provider handoff, and view the outcome rec
   await page.getByRole("button", { name: /confirm handoff to test provider/i }).click();
   await expect(page).toHaveURL(/\/outcomes\/outcome-test-1/);
   await expect(page.getByRole("heading", { name: /provider handoff recorded/i })).toBeVisible();
-  await expect(page.getByText("attr-test-1", { exact: true })).toBeVisible();
+  await expect(page.getByText("attr-test-1", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/no authenticated provider event/i)).toBeVisible();
+  await expect(page.getByRole("link", { name: /continue to test provider/i })).toHaveAttribute(
+    "href",
+    continueUrl,
+  );
 });
