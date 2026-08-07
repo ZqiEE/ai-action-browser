@@ -8,6 +8,7 @@ Both applications install exactly the dependency trees committed in `package-loc
 
 ### Production API
 
+- all committed D1 migrations apply successfully to a clean local database;
 - strict TypeScript checking;
 - Provider URL, timestamp, evidence-size, signature, confirmation, and outcome-transition tests;
 - Provider credential derivation and cross-Provider authorization tests;
