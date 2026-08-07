@@ -6,7 +6,7 @@ The product category is the AI browser. U.S. laptop discovery and Provider hando
 
 ## Automated gates
 
-Both applications install exactly the dependency trees committed in `package-lock.json` using `npm ci`.
+The API and Web applications install exactly the dependency trees committed in `package-lock.json` using `npm ci`. The browser extension intentionally has no runtime npm dependency tree and is validated with Node built-ins plus Manifest checks.
 
 ### Production API
 
@@ -21,11 +21,12 @@ Both applications install exactly the dependency trees committed in `package-loc
 ### Web application
 
 - strict TypeScript checking;
-- unit tests;
+- unit tests, including browser-extension context parsing and privacy-bounded URL handling;
 - production build with an explicit API origin;
 - production dependency audit with no high-severity findings;
 - Chromium desktop contract flow;
-- WebKit mobile contract flow.
+- WebKit mobile contract flow;
+- an extension-context contract proves that current-page context reaches Compare while credentials, query parameters, and fragments are stripped before the upstream request.
 
 The Web application uses a small native Hash Router instead of the vulnerable React Router production dependency. Existing public route shapes remain stable:
 
@@ -38,6 +39,19 @@ The Web application uses a small native Hash Router instead of the vulnerable Re
 - `#/outcomes/:outcomeId`
 
 Malformed encoded dynamic paths must recover to the safe not-found route instead of crashing the application.
+
+### Chrome / Edge browser extension
+
+- Manifest V3 only;
+- minimum Chrome version remains explicit and compatible with Side Panel behavior;
+- JavaScript syntax checks pass for the service worker, Side Panel, and context helper;
+- extension context unit tests pass;
+- the Manifest validator rejects any permission expansion beyond `activeTab` and `sidePanel`;
+- `host_permissions`, `optional_host_permissions`, persistent content scripts, storage, history, cookies, and persistent tabs access remain absent;
+- the current page URL is reduced to `origin + pathname` before task handoff, stripping credentials, query parameters, and fragments;
+- disabling current-page context removes all `ctx_*` values from the task route;
+- current-page values remain in the Hash route rather than the initial HTTP request to the Web host;
+- CI packages an installable `ai-action-browser-extension.zip` artifact after validation.
 
 ## Runtime safety gates
 
@@ -65,6 +79,8 @@ Malformed encoded dynamic paths must recover to the safe not-found route instead
 - every response receives a request id and rate-limit metadata where applicable;
 - structured request logging excludes request bodies, search text, browsing history, Provider secrets, and attribution tokens;
 - recommendation queries do not receive commission, bids, partner tier, or expected revenue;
+- browser extension current-page context is read only after user invocation, is not persisted by the extension, and can be excluded before starting the task;
+- browser extension permissions cannot silently expand without failing the checked-in Manifest validation gate;
 - production-facing documentation links target stable `main` paths rather than temporary feature branches.
 
 ## External launch gates
@@ -79,6 +95,8 @@ Automation cannot complete these items without the owner accounts and commercial
 - configure alert thresholds, backups, incident response, and operational ownership around the existing structured logs and request ids;
 - connect at least one real Provider, approved affiliate network, Feed, sandbox, or signed commercial pilot;
 - verify that the real Provider passes the authenticated diagnostics endpoint with fresh active Offers;
+- install the packaged extension in real Chrome and Edge, verify current-page context on normal Web pages, and verify no context is available on restricted browser pages;
+- verify that the extension opens the exact production Web origin and that Search / Compare / Prepare preserve the confirmation boundary;
 - verify the deployed desktop and mobile URLs.
 
 The PR remains a launchable codebase, not a claim that these external launch gates are already complete.
