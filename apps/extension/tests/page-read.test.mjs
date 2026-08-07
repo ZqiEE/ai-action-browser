@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { normalizePageRead, pageReadToGoalText } from "../lib/page-read.mjs";
+import {
+  appendPageDetailsToGoal,
+  normalizePageRead,
+  pageReadToGoalText,
+} from "../lib/page-read.mjs";
 
 test("normalizes bounded page details", () => {
   const result = normalizePageRead({
@@ -52,4 +56,16 @@ test("formats only user-visible bounded details for the goal", () => {
   assert.match(text, /Page description: A thin laptop/);
   assert.match(text, /Page headings: Model X \| Specifications/);
   assert.match(text, /Visible page excerpt: 16 GB RAM and 1 TB SSD/);
+});
+
+test("adds visible page details only within the task text budget", () => {
+  const result = appendPageDetailsToGoal(
+    "Compare this product with alternatives.",
+    "Selected text: useful detail ".repeat(100),
+    1000,
+  );
+
+  assert.equal(result.goal.length <= 1000, true);
+  assert.match(result.goal, /^Compare this product with alternatives\.\n\nContext from current page:/);
+  assert.equal(result.truncated, true);
 });
