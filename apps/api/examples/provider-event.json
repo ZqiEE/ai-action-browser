@@ -1,4 +1,5 @@
 {
+  "providerId": "provider-example",
   "eventId": "provider-event-123",
   "attributionToken": "attr_replace_with_real_token",
   "status": "completed",
