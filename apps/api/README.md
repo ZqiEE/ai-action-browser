@@ -1,6 +1,6 @@
 # AI Action Browser API
 
-Production runtime for the first free AI browser category. This Worker provides live Web search, provider Offer ingestion, deterministic independent comparison, user-controlled Prepare and Confirm, attribution, and authenticated provider outcome events.
+Production runtime for the first free AI browser category. This Worker provides live Web search, Provider Offer ingestion, deterministic independent comparison, user-controlled Prepare and Confirm, attribution, authenticated Provider outcome events, request protection, and Provider production diagnostics.
 
 The machine-readable contract is [`openapi.yaml`](openapi.yaml).
 
@@ -23,6 +23,11 @@ The machine-readable contract is [`openapi.yaml`](openapi.yaml).
 - Search results are limited to public HTTP/HTTPS URLs without embedded credentials.
 - JSON bodies and evidence objects have explicit size limits.
 - Brave Search and optional OpenAI requests have hard timeouts.
+- Consumer and Provider routes have bounded per-minute request budgets backed by D1 counters.
+- Rate-limit storage uses a SHA-256-derived client identifier rather than storing the raw client IP.
+- Expired rate-limit buckets are deleted by an hourly Worker cron.
+- Every API response receives an `X-Request-Id`; safe caller-provided request ids are preserved for cross-system tracing.
+- Structured request logs contain method, path, status, duration, route group, coarse Cloudflare location metadata, and request id, but not request bodies, search text, Provider secrets, attribution tokens, or browsing history.
 - No production endpoint silently falls back to fixture results.
 - OpenAI is optional and is used only for bounded natural-language constraint extraction when configured.
 - Responses API requests use `store: false`.
@@ -72,6 +77,26 @@ npm test
 npm audit --omit=dev --audit-level=high
 npm run deploy
 ```
+
+## Runtime protection and tracing
+
+All non-health production routes are rate limited in one-minute buckets. Current V1 budgets are intentionally conservative:
+
+| Route group | Requests / minute / client |
+| --- | ---: |
+| Search | 30 |
+| Compare | 20 |
+| Prepare | 20 |
+| Confirm | 20 |
+| Outcome receipt reads | 120 |
+| Provider administration | 60 |
+| Provider diagnostics | 60 |
+| Provider Offer ingestion | 60 |
+| Provider outcome events | 240 |
+
+Rate-limited responses return HTTP `429` plus `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`. Every response returns `X-Request-Id`. The Web origin may read these headers through CORS.
+
+The limits protect a free consumer product from accidental loops and basic abuse without introducing a consumer paywall. They are operational safety limits, not paid usage tiers.
 
 ## Public endpoints
 
@@ -161,7 +186,20 @@ The token is scoped to `provider-example`; it cannot import Offers for another P
 
 `prepareUrl` and `sourceUrl` must use HTTPS and the registered Provider hostname or one of its subdomains. The service rejects unrelated redirect and tracking domains unless they are explicitly registered as part of the Provider domain design.
 
-### 3. Rotate one Provider's credentials
+### 3. Provider runs production diagnostics
+
+A Provider can verify its own live integration using the same scoped `apiToken`:
+
+```http
+GET /v1/providers/provider-example/diagnostics
+Authorization: Bearer <provider-api-token>
+```
+
+The response never returns secrets. It reports Provider activation, accepted credential version, Offer totals, active/fresh Offer counts, the latest Offer retrieval timestamp, aggregated outcome states, and `readyForTraffic`. An active Offer is considered stale after 24 hours in V1.
+
+A Provider is `readyForTraffic` only when the Provider is active and at least one active Offer is still inside the freshness window. Commercial terms are not part of this readiness calculation.
+
+### 4. Rotate one Provider's credentials
 
 Only the platform administrator can rotate credentials:
 
@@ -241,10 +279,12 @@ The API test suite covers:
 - invalid commercial state transitions;
 - idempotent same-state events;
 - Provider credential separation by Provider id, purpose, and credential version;
-- rejection of a Provider token used against another Provider or an old credential version.
+- rejection of a Provider token used against another Provider or an old credential version;
+- consumer and Provider rate-limit route budgets;
+- request correlation header behavior.
 
-The Web contract test additionally verifies that the Provider continuation URL is obtained only after confirmation, retained only in the current browser session, and not rendered as an attribution token in the public receipt.
+CI also applies all committed D1 migrations to a clean local database before TypeScript and tests run. The Web contract test additionally verifies that the Provider continuation URL is obtained only after confirmation, retained only in the current browser session, and not rendered as an attribution token in the public receipt.
 
 ## Not yet production-complete
 
-Deployment still requires real service credentials, a real D1 database id, privacy and terms URLs, operational alerting, rate limits, backups, and at least one signed Provider or affiliate integration. The repository never claims these are active until they are configured and verified.
+Deployment still requires real service credentials, a real D1 database id, privacy and terms URLs, operational alert thresholds, backups, incident-response ownership, and at least one signed Provider or affiliate integration. The repository never claims these are active until they are configured and verified.
