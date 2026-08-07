@@ -1,3 +1,4 @@
+import { discoveryGoal, normalizeBrowserPageContext } from "./browser-context";
 import { extractConstraints } from "./constraints";
 import { ApiError, cleanText, json, normalizeCategory, readJson } from "./http";
 import { rankOffersForGoal } from "./relevance";
@@ -83,17 +84,22 @@ async function readActiveOffers(env: Env, category: string | null): Promise<Offe
 }
 
 export async function compareOffers(request: Request, env: Env): Promise<Response> {
-  const body = await readJson<CompareRequest>(request, 32 * 1024);
+  const body = await readJson<CompareRequest>(request, 36 * 1024);
   const query = cleanText(body.query, 1_000);
   if (!query) throw new ApiError(400, "invalid_query", "A comparison goal is required.");
 
+  const pageContext = normalizeBrowserPageContext(body.pageContext);
+  const relevanceGoal = discoveryGoal(query, pageContext, 1_400);
   const rawCategory = cleanText(body.category, 80);
   const requestedCategory = rawCategory ? normalizeCategory(rawCategory) : null;
+
+  // Constraint extraction sees only the user's explicit goal. Browser page metadata is transient
+  // discovery context and is never sent to the model or persisted in the task record.
   const constraints = await extractConstraints(query, env);
   const allOffers = await readActiveOffers(env, requestedCategory);
   const candidates = rankOffersForGoal(
     allOffers,
-    query,
+    relevanceGoal,
     constraints.budget,
     requestedCategory !== null,
     3,
@@ -115,6 +121,7 @@ export async function compareOffers(request: Request, env: Env): Promise<Respons
       constraints,
       recommendations: [],
       incomplete: true,
+      pageContextUsed: pageContext !== null,
       message: requestedCategory
         ? "No active Provider Offers are available for the requested category."
         : "No active Provider Offers matched this goal. Use normal Search or connect relevant Provider supply.",
@@ -133,6 +140,7 @@ export async function compareOffers(request: Request, env: Env): Promise<Respons
     constraints,
     recommendations: candidates.map((row) => offerView(row, constraints)),
     incomplete: false,
+    pageContextUsed: pageContext !== null,
     recommendationPolicy: {
       commissionUsedForRanking: false,
       bidsUsedForRanking: false,
