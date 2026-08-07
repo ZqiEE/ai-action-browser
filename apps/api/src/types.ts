@@ -61,6 +61,7 @@ export type OutcomeStatus =
 export type ProviderOutcomeStatus = Exclude<OutcomeStatus, "prepared" | "confirmed">;
 
 export interface ProviderEventInput {
+  providerId: string;
   eventId: string;
   attributionToken: string;
   status: ProviderOutcomeStatus;
@@ -73,6 +74,7 @@ export interface ProviderRow {
   name: string;
   domain: string;
   active: number;
+  credential_version: number;
 }
 
 export interface OfferRow {
