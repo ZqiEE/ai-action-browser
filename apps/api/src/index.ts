@@ -1,6 +1,6 @@
+import { compareOffers } from "./compare";
 import { providerDiagnostics } from "./diagnostics";
 import {
-  compareOffers,
   confirmOutcome,
   health,
   prepareOutcome,
