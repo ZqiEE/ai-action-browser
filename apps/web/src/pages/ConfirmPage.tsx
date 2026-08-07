@@ -1,53 +1,98 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "@/components/Button";
-import { CheckIcon } from "@/components/Icons";
-import { demoOrder, demoProducts } from "@/data/demo";
-import { formatCurrency, formatDate, resolveLocale } from "@/lib/locale";
-
-type ConfirmState = "idle" | "authenticating" | "failed" | "success";
+import {
+  ApiError,
+  confirmPreparedOutcome,
+  prepareOffer,
+  type PreparedOutcomeResponse,
+} from "@/lib/api";
+import { formatCurrency, resolveLocale } from "@/lib/locale";
 
 export function ConfirmPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const locale = resolveLocale();
-  const [state, setState] = useState<ConfirmState>("idle");
+  const offerId = searchParams.get("offer")?.trim() ?? "";
+  const taskId = searchParams.get("task")?.trim() ?? "";
+  const query = searchParams.get("q")?.trim() ?? "";
+  const [prepared, setPrepared] = useState<PreparedOutcomeResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const product = useMemo(() => {
-    const productId = searchParams.get("product") ?? demoOrder.productId;
-    return demoProducts.find((item) => item.id === productId) ?? demoProducts[0];
-  }, [searchParams]);
+  useEffect(() => {
+    let active = true;
+    if (!offerId || !taskId) {
+      setLoading(false);
+      setError("The selected provider offer or browser task is missing.");
+      return () => {
+        active = false;
+      };
+    }
 
-  if (!product) return null;
+    setLoading(true);
+    setError(null);
+    prepareOffer(offerId, taskId, query)
+      .then((value) => {
+        if (active) setPrepared(value);
+      })
+      .catch((reason: unknown) => {
+        if (!active) return;
+        setError(reason instanceof ApiError ? reason.message : "The provider handoff could not be prepared.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
-  const total = product.price;
-  const tax = Math.min(50, Math.round(total * 0.08));
-  const subtotal = total - tax;
+    return () => {
+      active = false;
+    };
+  }, [offerId, taskId, query]);
 
-  function confirmPurchase() {
-    if (state === "authenticating") return;
-    setState("authenticating");
-    window.setTimeout(() => setState("success"), 1200);
+  async function confirmHandoff() {
+    if (!prepared || confirming) return;
+    setConfirming(true);
+    setError(null);
+    try {
+      const confirmation = await confirmPreparedOutcome(prepared.outcomeId);
+      window.sessionStorage.setItem(
+        `aab-continue:${prepared.outcomeId}`,
+        confirmation.continueUrl,
+      );
+      navigate(`/outcomes/${encodeURIComponent(prepared.outcomeId)}`);
+    } catch (reason) {
+      setError(reason instanceof ApiError ? reason.message : "The handoff confirmation failed.");
+    } finally {
+      setConfirming(false);
+    }
   }
 
-  if (state === "success") {
+  if (loading) {
     return (
-      <main id="main-content" className="secure-page secure-page--success">
-        <section className="success-receipt" aria-live="polite">
-          <span className="success-receipt__icon" aria-hidden="true"><CheckIcon /></span>
-          <p className="eyebrow">Demo receipt</p>
-          <h1>Purchase preparation completed</h1>
-          <p>No real order or payment was submitted. This prototype simulated a successful system verification.</p>
-          <dl>
-            <div><dt>Item</dt><dd>{product.name}</dd></div>
-            <div><dt>Amount</dt><dd>{formatCurrency(total, product.currency, locale)}</dd></div>
-            <div><dt>Reference</dt><dd>DEMO-48291</dd></div>
-          </dl>
-          <Button variant="primary" onClick={() => navigate("/")}>Return home</Button>
+      <main id="main-content" className="secure-page">
+        <div className="task-loading" role="status" aria-live="polite">
+          <span className="spinner" aria-hidden="true" />
+          <span>Preparing the provider handoff and attribution record…</span>
+        </div>
+      </main>
+    );
+  }
+
+  if (!prepared) {
+    return (
+      <main id="main-content" className="secure-page">
+        <section className="success-receipt">
+          <p className="eyebrow">Preparation failed</p>
+          <h1>Nothing was confirmed or sent</h1>
+          <p>{error ?? "The selected offer could not be prepared."}</p>
+          <Button variant="primary" onClick={() => navigate(-1)}>Return to comparison</Button>
         </section>
       </main>
     );
   }
+
+  const offer = prepared.offer;
 
   return (
     <main id="main-content" className="secure-page">
@@ -55,98 +100,101 @@ export function ConfirmPage() {
         <button type="button" className="back-link" onClick={() => navigate(-1)}>← Back</button>
         <div>
           <p className="eyebrow">Independent confirmation page</p>
-          <h1>Review and confirm</h1>
+          <h1>Review the provider handoff</h1>
         </div>
       </header>
 
       <div className="secure-layout">
-        <section className="secure-content" aria-label="Purchase details">
+        <section className="secure-content" aria-label="Provider handoff details">
           <p className="demo-banner" role="note">
-            Prototype only. No merchant account, payment method, or delivery address is being used.
+            This V1 confirms a handoff to the provider. It does not submit payment or place an order.
+            Any provider checkout remains visible and under your control.
           </p>
 
           <section className="confirm-section confirm-section--destination">
             <div className="confirm-section__heading"><h2>Destination</h2></div>
             <dl className="confirm-list">
-              <div><dt>Merchant</dt><dd>{demoOrder.merchantName}</dd></div>
-              <div><dt>Domain</dt><dd><strong>{demoOrder.destinationDomain}</strong></dd></div>
-              <div><dt>Connection</dt><dd>Encrypted</dd></div>
-              <div><dt>Merchant information</dt><dd>Matched against demo merchant details</dd></div>
-              <div><dt>Verification</dt><dd>Demo status — not a production merchant verification</dd></div>
+              <div><dt>Provider</dt><dd>{offer.providerName}</dd></div>
+              <div><dt>Domain</dt><dd><strong>{offer.providerDomain}</strong></dd></div>
+              <div><dt>Connection</dt><dd>HTTPS provider URL required by the connector</dd></div>
+              <div><dt>Attribution</dt><dd>A single outcome token is added only after confirmation</dd></div>
             </dl>
           </section>
 
           <section className="confirm-section">
-            <div className="confirm-section__heading"><h2>Order</h2><button type="button">Edit</button></div>
+            <div className="confirm-section__heading"><h2>Selected result</h2></div>
             <dl className="confirm-list">
-              <div><dt>{product.name}</dt><dd>{formatCurrency(subtotal, product.currency, locale)}</dd></div>
-              <div><dt>Estimated tax</dt><dd>{formatCurrency(tax, product.currency, locale)}</dd></div>
-              <div><dt>Shipping</dt><dd>Free</dd></div>
-              <div className="confirm-list__total"><dt>Total today</dt><dd>{formatCurrency(total, product.currency, locale)}</dd></div>
-              <div><dt>Cashback after eligible purchase</dt><dd>{formatCurrency(demoOrder.cashback, product.currency, locale)}</dd></div>
+              <div><dt>Offer</dt><dd>{offer.title}</dd></div>
+              <div><dt>Provider amount</dt><dd>{formatCurrency(offer.price, offer.currency, locale)}</dd></div>
+              <div><dt>Availability</dt><dd>{offer.availability}</dd></div>
+              <div><dt>Delivery</dt><dd>{offer.delivery || "Not supplied"}</dd></div>
+              <div><dt>Returns</dt><dd>{offer.returns || "Not supplied"}</dd></div>
+              <div><dt>Warranty</dt><dd>{offer.warranty || "Not supplied"}</dd></div>
             </dl>
           </section>
 
           <section className="confirm-section">
-            <div className="confirm-section__heading"><h2>Delivery</h2><button type="button">Edit</button></div>
-            <dl className="confirm-list">
-              <div><dt>Address</dt><dd>{demoOrder.deliveryAddress}</dd></div>
-              <div><dt>Estimated arrival</dt><dd>{formatDate(demoOrder.deliveryDate, locale)}</dd></div>
-              <div><dt>Return deadline</dt><dd>{formatDate(demoOrder.returnDeadline, locale)}</dd></div>
-            </dl>
-          </section>
-
-          <section className="confirm-section">
-            <div className="confirm-section__heading"><h2>Payment</h2><button type="button">Edit</button></div>
-            <dl className="confirm-list">
-              <div><dt>Method</dt><dd>{demoOrder.paymentLabel}</dd></div>
-              <div><dt>Verification</dt><dd>Your device will request system verification after you continue.</dd></div>
-            </dl>
-          </section>
-
-          <section className="confirm-section">
-            <div className="confirm-section__heading"><h2>Data sharing</h2><button type="button">Edit</button></div>
+            <div className="confirm-section__heading"><h2>Data sharing</h2></div>
             <div className="data-sharing-grid">
-              <div><h3>Shared for this order</h3><ul>{demoOrder.sharedData.map((item) => <li key={item}>{item}</li>)}</ul></div>
-              <div><h3>Not shared</h3><ul>{demoOrder.retainedData.map((item) => <li key={item}>{item}</li>)}</ul></div>
+              <div>
+                <h3>Sent with this handoff</h3>
+                <ul>
+                  <li>Selected provider Offer id</li>
+                  <li>Random outcome and attribution identifiers</li>
+                  <li>The provider URL you are opening</li>
+                </ul>
+              </div>
+              <div>
+                <h3>Not sent</h3>
+                <ul>
+                  <li>Your private browsing history</li>
+                  <li>Passwords, cookies, or payment credentials</li>
+                  <li>Other tabs or unrelated task content</li>
+                </ul>
+              </div>
             </div>
+          </section>
+
+          <section className="confirm-section">
+            <div className="confirm-section__heading"><h2>Result lifecycle</h2></div>
+            <dl className="confirm-list">
+              <div><dt>Current status</dt><dd>Prepared</dd></div>
+              <div><dt>After confirmation</dt><dd>Confirmed handoff</dd></div>
+              <div><dt>Commercial result</dt><dd>Only after an authenticated provider event</dd></div>
+              <div><dt>Reversal deadline</dt><dd>{new Date(prepared.reversalDeadline).toLocaleDateString()}</dd></div>
+            </dl>
           </section>
 
           <section className="commercial-disclosure">
             <h2>Commercial disclosure</h2>
             <p>
-              The platform may receive a commission after an eligible purchase. Commission and merchant bids
-              did not affect the independent recommendation order.
+              The provider may pay an integration, software, handoff, or completed-outcome fee.
+              Those commercial terms were not available to the independent comparison query and
+              did not determine which offer appeared first.
             </p>
           </section>
         </section>
 
         <aside className="confirm-actions" aria-label="Final confirmation">
-          <p className="eyebrow">Final step</p>
-          <h2>{formatCurrency(total, product.currency, locale)}</h2>
-          <p>You are about to request system verification. No real payment will occur in this prototype.</p>
+          <p className="eyebrow">User-controlled handoff</p>
+          <h2>{formatCurrency(offer.price, offer.currency, locale)}</h2>
+          <p>
+            Confirming records your choice and releases the provider link to this browser session.
+            It does not authorize a payment or allow the provider to read private browser data.
+          </p>
 
-          {state === "failed" && (
+          {error && (
             <div className="inline-alert inline-alert--danger" role="alert">
-              <strong>System verification failed</strong>
-              <p>Nothing was submitted. Review the details or try again.</p>
+              <strong>Confirmation failed</strong>
+              <p>{error}</p>
             </div>
           )}
 
-          <Button
-            variant="primary"
-            loading={state === "authenticating"}
-            onClick={confirmPurchase}
-          >
-            {state === "authenticating" ? "Waiting for system verification" : "Confirm with system verification"}
+          <Button variant="primary" loading={confirming} onClick={confirmHandoff}>
+            {confirming ? "Confirming provider handoff" : `Confirm handoff to ${offer.providerName}`}
           </Button>
-          <Button variant="secondary" onClick={() => navigate("/compare")}>Edit order</Button>
-          <Button variant="quiet" onClick={() => navigate("/compare")}>Cancel</Button>
-
-          <details className="demo-controls">
-            <summary>Prototype state controls</summary>
-            <button type="button" onClick={() => setState("failed")}>Simulate authentication failure</button>
-          </details>
+          <Button variant="secondary" onClick={() => navigate(-1)}>Choose another result</Button>
+          <Button variant="quiet" onClick={() => navigate("/")}>Cancel task</Button>
         </aside>
       </div>
     </main>

@@ -1,40 +1,54 @@
 import { Link } from "react-router";
 import { Omniprompt } from "@/components/Omniprompt";
 
+const examples = [
+  {
+    label: "Search the Web normally",
+    to: "/search?q=What%20is%20an%20AI-native%20browser%3F",
+  },
+  {
+    label: "Current Compare category: laptops under $1,000",
+    to: "/compare?mode=compare&q=Find%20a%20laptop%20under%20%241%2C000%20for%20video%20editing%20with%20free%20returns",
+  },
+];
+
 export function HomePage() {
   return (
     <div className="home-page">
       <section className="home-hero" aria-labelledby="home-title">
         <div className="home-hero__copy">
-          <p className="eyebrow">Free action browser</p>
+          <p className="eyebrow">Completely free AI browser</p>
           <h1 id="home-title">What do you want to find or get done?</h1>
           <p>
-            Search normally, compare options, or prepare a task. You stay in control before
-            anything important happens.
+            Search normally, compare active provider evidence, or prepare a supported task. You
+            review the destination and shared data before any important handoff.
           </p>
         </div>
 
-        <Omniprompt initialValue="Find a laptop under $1,000 for video editing, delivered by next week, with free returns." />
+        <Omniprompt />
 
-        <div className="home-examples" aria-label="Example tasks">
-          <button type="button">Compare carry-on bags for a U.S. flight</button>
-          <button type="button">Find a family hotel near Central Park</button>
-          <button type="button">Prepare a grocery pickup order</button>
+        <div className="home-examples" aria-label="Example browser tasks">
+          {examples.map((example) => (
+            <Link key={example.to} to={example.to}>{example.label}</Link>
+          ))}
         </div>
       </section>
 
-      <section className="recent-task" aria-labelledby="recent-task-title">
+      <section className="recent-task" aria-labelledby="browser-model-title">
         <div>
-          <p className="eyebrow">Recent task</p>
-          <h2 id="recent-task-title">Laptop comparison</h2>
-          <p>Three options reviewed · Demo data · No purchase made</p>
+          <p className="eyebrow">Browser model</p>
+          <h2 id="browser-model-title">Search → Compare → Prepare → Confirm</h2>
+          <p>
+            Normal Search stays normal. Cross-provider work starts only after you choose it, and
+            each executable category is enabled only when real Provider evidence is connected.
+          </p>
         </div>
-        <Link to="/compare?q=laptop&mode=compare" className="text-link">Open comparison</Link>
+        <Link to="/providers" className="text-link">Provider integration</Link>
       </section>
 
       <footer className="home-footer">
-        <p>Free to use · No account required · Important actions always require your confirmation</p>
-        <p>Designed for people worldwide. This prototype uses U.S. English and U.S. shopping examples.</p>
+        <p>Free for consumers · No paid ranking · Important handoffs require confirmation</p>
+        <p>Providers can pay for software and verified outcomes, never for the independent best-result position.</p>
       </footer>
     </div>
   );

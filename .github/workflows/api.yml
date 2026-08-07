@@ -1,17 +1,17 @@
-name: Web application
+name: Production API
 
 on:
   pull_request:
     paths:
-      - "apps/web/**"
+      - "apps/api/**"
       - "docs/production-validation.md"
-      - ".github/workflows/web.yml"
+      - ".github/workflows/api.yml"
   push:
     branches: [main]
     paths:
-      - "apps/web/**"
+      - "apps/api/**"
       - "docs/production-validation.md"
-      - ".github/workflows/web.yml"
+      - ".github/workflows/api.yml"
 
 permissions:
   contents: read
@@ -21,27 +21,23 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: apps/web
+        working-directory: apps/api
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22.12"
           cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          cache-dependency-path: apps/api/package-lock.json
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
-      - name: Typecheck
+      - name: Apply local D1 migrations
+        run: npm run db:migrate:local
+      - name: Validate OpenAPI YAML
+        run: ruby -e 'require "yaml"; document = YAML.load_file("openapi.yaml"); abort "not OpenAPI 3.1" unless document["openapi"] == "3.1.0"; puts "OpenAPI YAML syntax OK"'
+      - name: Typecheck Worker
         run: npm run typecheck
-      - name: Unit tests
+      - name: Security and contract tests
         run: npm test
-      - name: Production build
-        env:
-          VITE_API_BASE_URL: https://api.example.invalid
-        run: npm run build
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium webkit
-      - name: Production-flow contract test
-        run: npm run test:e2e

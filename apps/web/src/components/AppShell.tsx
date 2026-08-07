@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { Link, Outlet } from "react-router";
+import { useEffect, useState, type ReactNode } from "react";
 import { IconButton } from "@/components/Button";
 import { MoonIcon, SunIcon } from "@/components/Icons";
+import { Link } from "@/lib/navigation";
 
 type Theme = "light" | "dark";
 
@@ -11,7 +11,7 @@ function getInitialTheme(): Theme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-export function AppShell() {
+export function AppShell({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
 
   useEffect(() => {
@@ -26,8 +26,8 @@ export function AppShell() {
           <span className="wordmark__mark" aria-hidden="true" />
           <span>Action Browser</span>
         </Link>
-        <nav className="site-header__actions" aria-label="Account and appearance">
-          <button type="button" className="text-action">Sign in</button>
+        <nav className="site-header__actions" aria-label="Product and appearance">
+          <Link to="/providers" className="text-link">For providers</Link>
           <IconButton
             label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
@@ -37,7 +37,7 @@ export function AppShell() {
         </nav>
       </header>
       <main id="main-content" className="page-content">
-        <Outlet />
+        {children}
       </main>
     </div>
   );

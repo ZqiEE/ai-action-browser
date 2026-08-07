@@ -1,11 +1,8 @@
 import { useId, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { IconButton } from "@/components/Button";
 import { Status } from "@/components/FormPrimitives";
 import {
-  AttachmentIcon,
   CompareIcon,
-  MicrophoneIcon,
   PrepareIcon,
   SearchIcon,
 } from "@/components/Icons";
@@ -23,19 +20,19 @@ const modeOptions: ModeOption[] = [
   {
     id: "search",
     label: "Search the web",
-    description: "Open normal web results.",
+    description: "Open normal web results without cross-site action.",
     icon: <SearchIcon />,
   },
   {
     id: "compare",
     label: "Compare options",
-    description: "Review sources and explain the trade-offs.",
+    description: "Review active provider evidence and explain the trade-offs.",
     icon: <CompareIcon />,
   },
   {
     id: "prepare",
     label: "Prepare this task",
-    description: "Prepare the steps, then ask before anything important.",
+    description: "Find an eligible provider result, then review the handoff before confirming.",
     icon: <PrepareIcon />,
   },
 ];
@@ -67,12 +64,12 @@ export function Omniprompt({ initialValue = "", compact = false }: OmnipromptPro
     const query = value.trim();
     if (!query) return;
 
-    if (mode === "prepare") {
-      navigate(`/confirm?from=home&q=${encodeURIComponent(query)}`);
+    if (mode === "search") {
+      navigate(`/search?q=${encodeURIComponent(query)}`);
       return;
     }
 
-    navigate(`/compare?mode=${mode}&q=${encodeURIComponent(query)}`);
+    navigate(`/${mode === "prepare" ? "compare?mode=prepare" : "compare?mode=compare"}&q=${encodeURIComponent(query)}`);
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -126,8 +123,6 @@ export function Omniprompt({ initialValue = "", compact = false }: OmnipromptPro
           onKeyDown={handleKeyDown}
         />
         <div className="omniprompt__tools">
-          <IconButton label="Attach a file"><AttachmentIcon /></IconButton>
-          <IconButton label="Use voice input"><MicrophoneIcon /></IconButton>
           <button
             type="button"
             className="omniprompt__submit"

@@ -1,0 +1,78 @@
+name: Deploy production API
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+      BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
+      PROVIDER_ADMIN_TOKEN: ${{ secrets.PROVIDER_ADMIN_TOKEN }}
+      PROVIDER_WEBHOOK_SECRET: ${{ secrets.PROVIDER_WEBHOOK_SECRET }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+      ALLOWED_ORIGIN: ${{ vars.WEB_ALLOWED_ORIGIN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12"
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+      - name: Require production configuration
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$D1_DATABASE_ID"
+          test -n "$BRAVE_SEARCH_API_KEY"
+          test -n "$PROVIDER_ADMIN_TOKEN"
+          test -n "$PROVIDER_WEBHOOK_SECRET"
+          test -n "$ALLOWED_ORIGIN"
+      - name: Apply deployment configuration
+        run: |
+          sed -i "s/REPLACE_WITH_D1_DATABASE_ID/$D1_DATABASE_ID/" wrangler.toml
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          path = Path("wrangler.toml")
+          text = path.read_text()
+          text = text.replace('ALLOWED_ORIGIN = "https://zqiee.github.io"', f'ALLOWED_ORIGIN = "{os.environ["ALLOWED_ORIGIN"]}"')
+          text = text.replace('OPENAI_MODEL = ""', f'OPENAI_MODEL = "{os.environ.get("OPENAI_MODEL", "")}"')
+          path.write_text(text)
+          PY
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Validate release
+        run: |
+          npm run typecheck
+          npm test
+          npm audit --omit=dev --audit-level=high
+      - name: Apply D1 migrations
+        run: npm run db:migrate:remote
+      - name: Upload Worker secrets
+        run: |
+          jq -n \
+            --arg brave "$BRAVE_SEARCH_API_KEY" \
+            --arg admin "$PROVIDER_ADMIN_TOKEN" \
+            --arg webhook "$PROVIDER_WEBHOOK_SECRET" \
+            --arg openai "$OPENAI_API_KEY" \
+            '{BRAVE_SEARCH_API_KEY:$brave,PROVIDER_ADMIN_TOKEN:$admin,PROVIDER_WEBHOOK_SECRET:$webhook,OPENAI_API_KEY:$openai}' \
+            > /tmp/aab-secrets.json
+          npx wrangler secret bulk /tmp/aab-secrets.json
+          rm -f /tmp/aab-secrets.json
+      - name: Deploy Worker
+        run: npm run deploy

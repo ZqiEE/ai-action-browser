@@ -1,0 +1,729 @@
+openapi: 3.1.0
+info:
+  title: AI Action Browser Outcome API
+  version: 0.3.0
+  description: |
+    Production contract for the first deployable task path of the free AI browser.
+    AI Action Browser is the product category; U.S. laptop discovery is only the first supported
+    task category. Consumer endpoints never accept commission, bid, partner-tier, or expected-revenue
+    inputs. Provider payment cannot purchase independent ranking.
+
+    Non-health routes use bounded per-minute request budgets. Every response carries X-Request-Id;
+    rate-limited routes also expose rate-limit metadata. The attributed Provider continuation URL is
+    withheld until explicit consumer confirmation and is omitted from the public Outcome Receipt.
+servers:
+  - url: https://api.example.invalid
+    description: Replace with the deployed Worker origin.
+tags:
+  - name: Runtime
+  - name: Consumer
+  - name: Provider administration
+  - name: Provider feed
+  - name: Provider diagnostics
+  - name: Provider outcomes
+paths:
+  /health:
+    get:
+      tags: [Runtime]
+      operationId: getHealth
+      responses:
+        "200":
+          description: Runtime and integration configuration status.
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+
+  /v1/search:
+    post:
+      tags: [Consumer]
+      operationId: searchWeb
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                count:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                  default: 8
+      responses:
+        "200":
+          description: Live public Web search results.
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+            X-RateLimit-Limit: { $ref: "#/components/headers/RateLimitLimit" }
+            X-RateLimit-Remaining: { $ref: "#/components/headers/RateLimitRemaining" }
+            X-RateLimit-Reset: { $ref: "#/components/headers/RateLimitReset" }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [query, results, source, durationMs]
+                properties:
+                  query: { type: string }
+                  source: { const: brave_web_search }
+                  durationMs: { type: integer }
+                  results:
+                    type: array
+                    items: { $ref: "#/components/schemas/SearchResult" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /v1/compare:
+    post:
+      tags: [Consumer]
+      operationId: compareOffers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  minLength: 1
+                  maxLength: 1000
+                category:
+                  type: string
+                  default: laptop
+                  pattern: "^[a-z0-9][a-z0-9._-]*$"
+      responses:
+        "200":
+          description: Independent comparison of active Provider Offers.
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+            X-RateLimit-Limit: { $ref: "#/components/headers/RateLimitLimit" }
+            X-RateLimit-Remaining: { $ref: "#/components/headers/RateLimitRemaining" }
+            X-RateLimit-Reset: { $ref: "#/components/headers/RateLimitReset" }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompareResponse"
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/prepare:
+    post:
+      tags: [Consumer]
+      operationId: prepareOutcome
+      description: |
+        Creates an internal attribution record for the selected Provider Offer. This endpoint does
+        not return an attribution token or a usable Provider continuation URL.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [offerId]
+              properties:
+                offerId: { type: string }
+                taskId: { type: string }
+                query:
+                  type: string
+                  maxLength: 1000
+      responses:
+        "201":
+          description: Provider handoff prepared; external action remains unauthorized.
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+            X-RateLimit-Limit: { $ref: "#/components/headers/RateLimitLimit" }
+            X-RateLimit-Remaining: { $ref: "#/components/headers/RateLimitRemaining" }
+            X-RateLimit-Reset: { $ref: "#/components/headers/RateLimitReset" }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreparedOutcome"
+        "404": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/outcomes/{outcomeId}/confirm:
+    post:
+      tags: [Consumer]
+      operationId: confirmOutcome
+      parameters:
+        - $ref: "#/components/parameters/OutcomeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [confirmed]
+              properties:
+                confirmed: { const: true }
+      responses:
+        "200":
+          description: Consumer-confirmed handoff. This is the only consumer endpoint that releases continueUrl.
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+            X-RateLimit-Limit: { $ref: "#/components/headers/RateLimitLimit" }
+            X-RateLimit-Remaining: { $ref: "#/components/headers/RateLimitRemaining" }
+            X-RateLimit-Reset: { $ref: "#/components/headers/RateLimitReset" }
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [outcome, continueUrl]
+                properties:
+                  outcome: { $ref: "#/components/schemas/Outcome" }
+                  continueUrl:
+                    type: string
+                    format: uri
+        "409": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/outcomes/{outcomeId}:
+    get:
+      tags: [Consumer]
+      operationId: getOutcome
+      description: Public auditable receipt. It never returns the attribution token or Provider continuation URL.
+      parameters:
+        - $ref: "#/components/parameters/OutcomeId"
+      responses:
+        "200":
+          description: Outcome receipt and authenticated Provider event history.
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+            X-RateLimit-Limit: { $ref: "#/components/headers/RateLimitLimit" }
+            X-RateLimit-Remaining: { $ref: "#/components/headers/RateLimitRemaining" }
+            X-RateLimit-Reset: { $ref: "#/components/headers/RateLimitReset" }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [outcome, events]
+                properties:
+                  outcome: { $ref: "#/components/schemas/Outcome" }
+                  events:
+                    type: array
+                    items: { $ref: "#/components/schemas/OutcomeEvent" }
+        "404": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/providers:
+    post:
+      tags: [Provider administration]
+      operationId: upsertProvider
+      security:
+        - ProviderAdminBearer: []
+      description: Platform-only Provider provisioning. Platform master secrets are never returned.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProviderInput" }
+      responses:
+        "201":
+          description: Provider created or updated and current Provider-scoped credentials issued.
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProviderProvisioning" }
+        "401": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /v1/providers/{providerId}/credentials/rotate:
+    post:
+      tags: [Provider administration]
+      operationId: rotateProviderCredentials
+      security:
+        - ProviderAdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/ProviderId"
+      description: Rotates only this Provider's API token and webhook signing secret.
+      responses:
+        "200":
+          description: Replacement Provider-scoped credentials.
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [providerId, credentials]
+                properties:
+                  providerId: { type: string }
+                  credentials: { $ref: "#/components/schemas/ProviderCredentials" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/providers/{providerId}/diagnostics:
+    get:
+      tags: [Provider diagnostics]
+      operationId: getProviderDiagnostics
+      security:
+        - ProviderBearer: []
+        - ProviderAdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/ProviderId"
+      description: |
+        Authenticated Provider self-check. Returns no secrets and reports activation, current
+        credential version, Offer freshness, aggregated outcome states, and readiness for traffic.
+        An active Offer is stale after 24 hours in V1.
+      responses:
+        "200":
+          description: Provider production-readiness diagnostics.
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+            X-RateLimit-Limit: { $ref: "#/components/headers/RateLimitLimit" }
+            X-RateLimit-Remaining: { $ref: "#/components/headers/RateLimitRemaining" }
+            X-RateLimit-Reset: { $ref: "#/components/headers/RateLimitReset" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProviderDiagnostics" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/providers/{providerId}/offers:
+    post:
+      tags: [Provider feed]
+      operationId: upsertProviderOffers
+      security:
+        - ProviderBearer: []
+        - ProviderAdminBearer: []
+      parameters:
+        - $ref: "#/components/parameters/ProviderId"
+      description: Provider-scoped Offer ingestion. A Provider token cannot write another Provider's Offers.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [offers]
+              properties:
+                offers:
+                  type: array
+                  minItems: 1
+                  maxItems: 500
+                  items: { $ref: "#/components/schemas/OfferInput" }
+      responses:
+        "201":
+          description: Offers imported.
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [providerId, imported]
+                properties:
+                  providerId: { type: string }
+                  imported: { type: integer }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/provider-events:
+    post:
+      tags: [Provider outcomes]
+      operationId: recordProviderOutcomeEvent
+      description: |
+        Sign the exact UTF-8 JSON body with HMAC-SHA256 using this Provider's current
+        webhookSigningSecret. Send the lowercase hex digest as X-AAB-Signature: sha256=<digest>.
+        providerId is part of the signed body, must own the attribution token, and the consumer must
+        have confirmed the handoff before any Provider result event is accepted.
+      parameters:
+        - name: X-AAB-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+            pattern: "^sha256=[a-f0-9]{64}$"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProviderEvent" }
+      responses:
+        "200":
+          description: Event accepted or recognized as an idempotent duplicate for this Provider.
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accepted, duplicate, outcomeId]
+                properties:
+                  accepted: { const: true }
+                  duplicate: { type: boolean }
+                  outcomeId: { type: string }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+components:
+  securitySchemes:
+    ProviderAdminBearer:
+      type: http
+      scheme: bearer
+      description: Platform-only PROVIDER_ADMIN_TOKEN. Never share it with a Provider.
+    ProviderBearer:
+      type: http
+      scheme: bearer
+      description: Provider-scoped apiToken returned by provisioning or credential rotation.
+
+  parameters:
+    OutcomeId:
+      name: outcomeId
+      in: path
+      required: true
+      schema: { type: string }
+    ProviderId:
+      name: providerId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[a-z0-9][a-z0-9._-]*$"
+
+  headers:
+    RequestId:
+      description: Correlation id for this request. Safe caller-provided ids may be preserved.
+      schema: { type: string }
+    RateLimitLimit:
+      description: Maximum requests allowed in the current one-minute route budget.
+      schema: { type: integer }
+    RateLimitRemaining:
+      description: Remaining requests in the current one-minute route budget.
+      schema: { type: integer, minimum: 0 }
+    RateLimitReset:
+      description: Unix timestamp in seconds when the current route budget resets.
+      schema: { type: integer }
+
+  responses:
+    Error:
+      description: Structured API error.
+      headers:
+        X-Request-Id: { $ref: "#/components/headers/RequestId" }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    RateLimited:
+      description: Current one-minute route budget is exhausted.
+      headers:
+        Retry-After:
+          description: Seconds until retry is allowed.
+          schema: { type: integer, minimum: 1 }
+        X-Request-Id: { $ref: "#/components/headers/RequestId" }
+        X-RateLimit-Limit: { $ref: "#/components/headers/RateLimitLimit" }
+        X-RateLimit-Remaining: { $ref: "#/components/headers/RateLimitRemaining" }
+        X-RateLimit-Reset: { $ref: "#/components/headers/RateLimitReset" }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        searchConfigured: { type: boolean }
+        providerAdminConfigured: { type: boolean }
+        providerWebhookConfigured: { type: boolean }
+        providerCredentialIsolationConfigured: { type: boolean }
+        constraintModelConfigured: { type: boolean }
+
+    SearchResult:
+      type: object
+      required: [id, title, url, displayUrl, snippet, sourceType]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        url: { type: string, format: uri }
+        displayUrl: { type: string }
+        snippet: { type: string }
+        sourceType: { const: web }
+        age: { type: [string, "null"] }
+
+    Constraints:
+      type: object
+      required: [budget, useCase, delivery, returns]
+      properties:
+        budget: { type: [number, "null"] }
+        useCase: { type: string }
+        delivery: { type: string }
+        returns: { type: string }
+
+    RecommendationPolicy:
+      type: object
+      additionalProperties: false
+      required: [commissionUsedForRanking, bidsUsedForRanking, expectedRevenueUsedForRanking]
+      properties:
+        commissionUsedForRanking: { const: false }
+        bidsUsedForRanking: { const: false }
+        expectedRevenueUsedForRanking: { const: false }
+
+    CompareResponse:
+      type: object
+      required: [taskId, query, category, constraints, recommendations, incomplete, recommendationPolicy]
+      properties:
+        taskId: { type: string }
+        query: { type: string }
+        category: { type: string }
+        constraints: { $ref: "#/components/schemas/Constraints" }
+        recommendations:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/OfferView" }
+        incomplete: { type: boolean }
+        message: { type: string }
+        recommendationPolicy: { $ref: "#/components/schemas/RecommendationPolicy" }
+
+    ProviderInput:
+      type: object
+      additionalProperties: false
+      required: [id, name, domain]
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9._-]*$"
+        name: { type: string, minLength: 1, maxLength: 200 }
+        domain:
+          type: string
+          description: Public hostname only, without scheme, path, port, or credentials.
+        active: { type: boolean, default: true }
+
+    ProviderCredentials:
+      type: object
+      additionalProperties: false
+      required: [credentialVersion, apiToken, webhookSigningSecret]
+      properties:
+        credentialVersion: { type: integer, minimum: 1 }
+        apiToken:
+          type: string
+          writeOnly: true
+          description: Provider-scoped bearer token for Offer ingestion and diagnostics.
+        webhookSigningSecret:
+          type: string
+          writeOnly: true
+          description: Provider-scoped HMAC secret for outcome callbacks.
+
+    ProviderProvisioning:
+      type: object
+      required: [id, name, domain, active, credentials]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        domain: { type: string }
+        active: { type: boolean }
+        credentials: { $ref: "#/components/schemas/ProviderCredentials" }
+
+    ProviderDiagnostics:
+      type: object
+      required: [provider, credentials, offers, outcomes, readyForTraffic, checks]
+      properties:
+        provider:
+          type: object
+          required: [id, name, domain, active, credentialVersion]
+          properties:
+            id: { type: string }
+            name: { type: string }
+            domain: { type: string }
+            active: { type: boolean }
+            credentialVersion: { type: integer }
+        credentials:
+          type: object
+          required: [apiTokenAccepted, webhookSigningConfigured]
+          properties:
+            apiTokenAccepted: { const: true }
+            webhookSigningConfigured: { type: boolean }
+        offers:
+          type: object
+          required: [total, active, stale, latestRetrievedAt, freshnessWindowHours]
+          properties:
+            total: { type: integer, minimum: 0 }
+            active: { type: integer, minimum: 0 }
+            stale: { type: integer, minimum: 0 }
+            latestRetrievedAt: { type: [string, "null"], format: date-time }
+            freshnessWindowHours: { const: 24 }
+        outcomes:
+          type: object
+          required: [confirmedOrAccepted, completed, cancelledOrRefunded, disputed]
+          properties:
+            confirmedOrAccepted: { type: integer, minimum: 0 }
+            completed: { type: integer, minimum: 0 }
+            cancelledOrRefunded: { type: integer, minimum: 0 }
+            disputed: { type: integer, minimum: 0 }
+        readyForTraffic: { type: boolean }
+        checks:
+          type: object
+          required: [providerActive, hasActiveOffers, hasFreshActiveOffer, recommendationRankingCommerciallyIndependent]
+          properties:
+            providerActive: { type: boolean }
+            hasActiveOffers: { type: boolean }
+            hasFreshActiveOffer: { type: boolean }
+            recommendationRankingCommerciallyIndependent: { const: true }
+
+    OfferInput:
+      type: object
+      additionalProperties: false
+      required: [id, category, title, price, currency, availability, deliveryText, returnsText, warrantyText, prepareUrl, sourceUrl, retrievedAt]
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9._-]*$"
+        category:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9._-]*$"
+        title: { type: string, minLength: 1, maxLength: 300 }
+        description: { type: string, maxLength: 2000 }
+        price: { type: number, minimum: 0, maximum: 1000000 }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        availability: { type: string, maxLength: 80 }
+        deliveryText: { type: string, maxLength: 300 }
+        returnsText: { type: string, maxLength: 300 }
+        warrantyText: { type: string, maxLength: 300 }
+        prepareUrl:
+          type: string
+          format: uri
+          description: HTTPS URL on the Provider hostname or one of its subdomains.
+        sourceUrl:
+          type: string
+          format: uri
+          description: HTTPS URL on the Provider hostname or one of its subdomains.
+        evidence:
+          type: object
+          additionalProperties: true
+        retrievedAt: { type: string, format: date-time }
+        active: { type: boolean, default: true }
+
+    OfferView:
+      type: object
+      required: [id, providerId, providerName, providerDomain, category, title, description, price, currency, availability, delivery, returns, warranty, sourceUrl, retrievedAt, strengths, tradeoffs, evidence, recommendationIndependent]
+      properties:
+        id: { type: string }
+        providerId: { type: string }
+        providerName: { type: string }
+        providerDomain: { type: string }
+        category: { type: string }
+        title: { type: string }
+        description: { type: string }
+        price: { type: number }
+        currency: { type: string }
+        availability: { type: string }
+        delivery: { type: string }
+        returns: { type: string }
+        warranty: { type: string }
+        sourceUrl: { type: string, format: uri }
+        retrievedAt: { type: string, format: date-time }
+        strengths:
+          type: array
+          items: { type: string }
+        tradeoffs:
+          type: array
+          items: { type: string }
+        evidence:
+          type: object
+          additionalProperties: true
+        recommendationIndependent: { const: true }
+
+    PreparedOutcome:
+      type: object
+      additionalProperties: false
+      required: [outcomeId, taskId, status, offer, reversalDeadline, userConfirmationRequired]
+      properties:
+        outcomeId: { type: string }
+        taskId: { type: string }
+        status: { const: prepared }
+        offer: { $ref: "#/components/schemas/OfferView" }
+        reversalDeadline: { type: string, format: date-time }
+        userConfirmationRequired: { const: true }
+
+    Outcome:
+      type: object
+      description: Public outcome view. Attribution token and Provider continuation URL are intentionally omitted.
+      required: [id, taskId, offerId, offerTitle, providerId, providerName, providerDomain, status, amount, currency, userConfirmed, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        taskId: { type: string }
+        offerId: { type: string }
+        offerTitle: { type: string }
+        providerId: { type: string }
+        providerName: { type: string }
+        providerDomain: { type: string }
+        status:
+          type: string
+          enum: [prepared, confirmed, accepted, completed, cancelled, refunded, disputed]
+        amount: { type: number }
+        currency: { type: string }
+        userConfirmed: { type: boolean }
+        completionEvidence:
+          type: [object, "null"]
+          additionalProperties: true
+        reversalDeadline: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ProviderEvent:
+      type: object
+      additionalProperties: false
+      required: [providerId, eventId, attributionToken, status, occurredAt]
+      properties:
+        providerId:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9._-]*$"
+        eventId: { type: string }
+        attributionToken: { type: string }
+        status:
+          type: string
+          enum: [accepted, completed, cancelled, refunded, disputed]
+        occurredAt: { type: string, format: date-time }
+        evidence:
+          type: object
+          additionalProperties: true
+
+    OutcomeEvent:
+      type: object
+      required: [status]
+      properties:
+        id: { type: string }
+        providerId: { type: string }
+        providerEventId: { type: string }
+        status:
+          type: string
+          enum: [accepted, completed, cancelled, refunded, disputed]
+        occurredAt: { type: string, format: date-time }
+        receivedAt: { type: string, format: date-time }
+        evidence:
+          type: object
+          additionalProperties: true

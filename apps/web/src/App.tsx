@@ -1,6 +1,10 @@
-import { RouterProvider } from "react-router/dom";
-import { router } from "@/router";
+import { HashRouter } from "@/lib/navigation";
+import { AppRouter } from "@/router";
 
 export function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <HashRouter>
+      <AppRouter />
+    </HashRouter>
+  );
 }
