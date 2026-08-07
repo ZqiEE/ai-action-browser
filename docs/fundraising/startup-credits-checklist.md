@@ -19,31 +19,41 @@ Prepare these once:
 - company-domain email matching the product website where required;
 - public product website and demo URL;
 - public GitHub repository;
-- concise product description;
-- description of how AI is foundational to the product;
+- concise product description identifying the product first as an AI browser;
+- description of how AI is foundational to browser search, task understanding, comparison, and action preparation;
+- explanation that laptop shopping is the first validation wedge, not the product category;
+- explanation of the outcome-funded free-access model and recommendation/commercial separation;
 - current company and funding stage;
 - incorporation date and country, if applicable;
 - cloud billing account identifiers;
 - estimated 12-month cloud and model usage;
 - architecture summary;
 - privacy and data-handling summary;
-- expected validation milestones;
+- expected browser, user-validation, and commercial milestones;
 - investor, accelerator, or program referral codes when available.
 
 ## Product description
 
-AI Action Browser is a free consumer AI product that turns a natural-language goal into sourced search, comparison, and a prepared next action while keeping important external actions under explicit user control. The first U.S. validation focuses on laptop shopping. The architecture uses incremental evidence updates, deterministic policy enforcement, and model routing to keep free consumer access economically sustainable.
+AI Action Browser is a free AI-native web browser that helps ordinary consumers search, understand, compare, and prepare tasks across the web while keeping important external actions under explicit user control. The browser uses normal Search as the default, can gather sourced evidence through Compare, and can prepare cross-site actions before requiring confirmation for payment, sending, submission, deletion, or other high-risk operations.
+
+The first U.S. validation focuses on laptop shopping because it exercises the browser's Search, Compare, Prepare, evidence, confirmation, and merchant-handoff model in one bounded workflow. It is the first validation wedge, not the long-term product boundary.
+
+The planned business model keeps core consumer access free. Commercial beneficiaries can pay for measurable outcomes, clearly separated benefits, or platform services, while independent recommendation ranking remains technically separated from bids, commissions, partner tiers, and expected revenue. The architecture uses incremental evidence updates, deterministic policy enforcement, constrained browser actions, and model routing to keep free access economically sustainable.
+
+Canonical positioning: [`../product-positioning.md`](../product-positioning.md).
 
 ## Planned use of credits
 
-- AI inference for intent extraction and sourced comparison explanations;
+- AI inference for intent extraction, query rewriting, evidence classification, and sourced comparison explanations;
+- browser task-state, permission, and Action Protocol development;
 - normalized evidence storage and change detection;
-- cost telemetry and observability;
-- public prototype hosting;
+- cost telemetry and observability by Search, Compare, Prepare, and outcome state;
+- public browser-experience prototype hosting;
 - limited search and data-acquisition workers;
-- security and abuse controls;
+- security, privacy, confirmation, and abuse controls;
 - development and evaluation environments;
-- no unrestricted remote-browser fleet during initial validation.
+- a limited browser-extension vertical slice after Web validation;
+- no unrestricted remote-browser fleet, automatic payment, or production outcome settlement during initial validation.
 
 ## Google for Startups Cloud
 
@@ -67,7 +77,7 @@ Application preparation:
 - create a Google Cloud account and billing account;
 - record the 18-character billing account ID;
 - use an email address on the product domain when possible;
-- explain why AI is foundational, not an optional feature;
+- explain why AI is foundational to the browser product, not an optional feature;
 - apply to the tier matching the actual funding status;
 - do not claim VC funding that does not exist.
 
