@@ -65,7 +65,7 @@ export function ProviderPage() {
           </Link>
           <a
             className="button button--secondary"
-            href="https://github.com/ZqiEE/ai-action-browser/blob/agent/free-ai-browser-outcome-mvp/apps/api/README.md"
+            href="https://github.com/ZqiEE/ai-action-browser/blob/main/apps/api/README.md"
             target="_blank"
             rel="noreferrer"
           >
