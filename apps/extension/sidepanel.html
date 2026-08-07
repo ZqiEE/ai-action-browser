@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Action Browser</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <main class="panel-shell">
+      <header class="brand-block">
+        <p class="eyebrow">Completely free AI browser</p>
+        <h1>AI Action Browser</h1>
+        <p>Search, compare, or prepare a Web task without losing the page you are using.</p>
+      </header>
+
+      <section class="context-card" aria-labelledby="context-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Current page</p>
+            <h2 id="context-title">Browser context</h2>
+          </div>
+          <button id="refresh-context" class="quiet-button" type="button">Refresh</button>
+        </div>
+        <div id="context-status" class="context-status" role="status" aria-live="polite">
+          Reading the active page…
+        </div>
+        <label class="checkbox-row">
+          <input id="include-context" type="checkbox" checked />
+          <span>Use this page title and URL for the task</span>
+        </label>
+        <p class="privacy-note">
+          The extension does not read browsing history, cookies, passwords, payment data, or page
+          contents. Current-page context is not stored by the extension.
+        </p>
+      </section>
+
+      <form id="task-form" class="task-form">
+        <label for="goal">What do you want to find or get done?</label>
+        <textarea
+          id="goal"
+          name="goal"
+          rows="5"
+          maxlength="500"
+          placeholder="Example: Compare this laptop with better options under $1,000 and explain the trade-offs."
+          required
+        ></textarea>
+
+        <fieldset>
+          <legend>Choose browser behavior</legend>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="search" checked />
+            <span><strong>Search</strong><small>Normal Web search. No cross-site action.</small></span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="compare" />
+            <span><strong>Compare</strong><small>Read independent Provider evidence and trade-offs.</small></span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="prepare" />
+            <span><strong>Prepare</strong><small>Prepare the supported task, then stop before the important handoff.</small></span>
+          </label>
+        </fieldset>
+
+        <button id="start-task" class="primary-button" type="submit">Start Search</button>
+        <p id="form-error" class="form-error" role="alert" aria-live="assertive"></p>
+      </form>
+
+      <footer>
+        <p>Important Provider handoffs still require explicit confirmation in the trusted browser flow.</p>
+      </footer>
+    </main>
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>
