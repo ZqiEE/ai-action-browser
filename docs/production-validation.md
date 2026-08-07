@@ -17,7 +17,11 @@ Changes to this shared checklist must trigger the Production API, Web applicatio
 - Provider URL, timestamp, evidence-size, signature, confirmation, and outcome-transition tests;
 - Provider credential derivation and cross-Provider authorization tests;
 - production rate-limit and request-correlation tests;
-- the checked-in OpenAPI contract describes every public production route, Provider diagnostics, confirmation capability boundary, and 429/request-correlation behavior;
+- Compare has no implicit `laptop` category; `category` is an optional exact Provider-category constraint;
+- when `category` is omitted, active Provider Offers are ranked by deterministic relevance to the user goal and explicit constraints, without commercial fields;
+- category-neutral relevance tests cover software, laptop, travel, sparse explicit-category queries, and refusal to guess across unrelated supply;
+- Provider Offer delivery, return/refund, and warranty/service text are optional category-specific fields rather than universal requirements;
+- the checked-in OpenAPI contract describes category-neutral Compare, nullable resolved category, optional category-specific Offer terms, every public production route, Provider diagnostics, confirmation capability boundary, and 429/request-correlation behavior;
 - production dependency audit with no high-severity findings.
 
 ### Web application
@@ -28,6 +32,9 @@ Changes to this shared checklist must trigger the Production API, Web applicatio
 - production dependency audit with no high-severity findings;
 - Chromium desktop contract flow;
 - WebKit mobile contract flow;
+- Compare requests omit category unless a trusted flow explicitly supplies one;
+- direct Compare without a goal must not invent a laptop query or start a hidden comparison;
+- Compare renders generic Provider category, availability, amount, and only applicable category-specific facts instead of assuming delivery/returns/warranty are universal;
 - an extension-context contract proves that current-page context reaches Compare while credentials, query parameters, and fragments are stripped before the upstream request.
 
 The Web application uses a small native Hash Router instead of the vulnerable React Router production dependency. Existing public route shapes remain stable:
@@ -87,7 +94,8 @@ Malformed encoded dynamic paths must recover to the safe not-found route instead
 - expired rate-limit buckets are removed by a scheduled Worker cleanup;
 - every response receives a request id and rate-limit metadata where applicable;
 - structured request logging excludes request bodies, search text, browsing history, Provider secrets, and attribution tokens;
-- recommendation queries do not receive commission, bids, partner tier, or expected revenue;
+- recommendation queries do not receive commission, bids, partner tier, expected revenue, or a hidden commerce-selected category;
+- no relevant cross-category Provider match must produce an empty Compare result rather than an unrelated recommendation;
 - browser extension current-page metadata is read only after user invocation, is not persisted by the extension, and can be excluded before starting the task;
 - browser extension page content is read only after a second explicit action and must be visible/editable before the user can add it to the task;
 - browser extension permissions cannot silently expand without failing the checked-in Manifest validation gate;
@@ -105,6 +113,7 @@ Automation cannot complete these items without the owner accounts and commercial
 - configure alert thresholds, backups, incident response, and operational ownership around the existing structured logs and request ids;
 - connect at least one real Provider, approved affiliate network, Feed, sandbox, or signed commercial pilot;
 - verify that the real Provider passes the authenticated diagnostics endpoint with fresh active Offers;
+- verify the laptop path as the first commercial category without reintroducing laptop as an API or browser-core default;
 - install the packaged extension in real Chrome and Edge, verify current-page metadata on normal Web pages, and verify no context is available on restricted browser pages;
 - verify explicit page reading on ordinary content pages and verify that login, one-time-code, and payment-card pages suppress content extraction;
 - verify that extracted details remain visible/editable until the user adds them to the task;
