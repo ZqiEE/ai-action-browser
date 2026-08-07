@@ -10,8 +10,8 @@ assert.equal(manifest.manifest_version, 3, "Manifest V3 is required.");
 assert.equal(manifest.minimum_chrome_version, "116", "The side-panel behavior requires Chrome 116+.");
 assert.deepEqual(
   [...manifest.permissions].sort(),
-  ["activeTab", "sidePanel"].sort(),
-  "Extension permissions must remain limited to the user-invoked active tab and side panel.",
+  ["activeTab", "sidePanel", "scripting"].sort(),
+  "Extension permissions must remain limited to user-invoked active-tab access, the side panel, and explicit page scripting.",
 );
 assert.equal("host_permissions" in manifest, false, "Host permissions are forbidden in the first browser extension release.");
 assert.equal("optional_host_permissions" in manifest, false, "Optional host permissions are forbidden in the first browser extension release.");
