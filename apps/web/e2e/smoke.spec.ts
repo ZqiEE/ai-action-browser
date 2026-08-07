@@ -132,3 +132,53 @@ test("consumer can enter a real browser goal, compare, confirm a provider handof
     continueUrl,
   );
 });
+
+test("browser extension context is visible, bounded, and included in Compare without URL secrets", async ({ page }) => {
+  let requestQuery = "";
+
+  await page.route("https://api.contract.test/v1/compare", async (route) => {
+    const body = route.request().postDataJSON() as { query?: string };
+    requestQuery = body.query ?? "";
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        taskId: "task-context-1",
+        query: requestQuery,
+        category: "laptop",
+        constraints: {
+          budget: 1000,
+          useCase: "not specified",
+          delivery: "not specified",
+          returns: "not specified",
+        },
+        recommendations: [recommendation],
+        incomplete: false,
+        recommendationPolicy: {
+          commissionUsedForRanking: false,
+          bidsUsedForRanking: false,
+          expectedRevenueUsedForRanking: false,
+        },
+      }),
+    });
+  });
+
+  const params = new URLSearchParams({
+    mode: "compare",
+    q: "Compare this with better laptops under $1,000",
+    ctx_source: "extension",
+    ctx_title: "Current Laptop Product",
+    ctx_url: "https://user:secret@shop.example/products/current?session=abc#checkout",
+  });
+
+  await page.goto(`/#/compare?${params.toString()}`);
+
+  await expect(page.getByText("Using current page context")).toBeVisible();
+  await expect(page.getByText(/Current Laptop Product · shop\.example/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Compare this with better laptops under $1,000" })).toBeVisible();
+  await expect.poll(() => requestQuery).toContain("Current page title: Current Laptop Product");
+  expect(requestQuery).toContain("Current page URL: https://shop.example/products/current");
+  expect(requestQuery).not.toContain("session=abc");
+  expect(requestQuery).not.toContain("secret@");
+  expect(requestQuery).not.toContain("#checkout");
+  expect(requestQuery.length).toBeLessThanOrEqual(1000);
+});
