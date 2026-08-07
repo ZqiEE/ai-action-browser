@@ -1,9 +1,9 @@
+import { providerDiagnostics } from "./diagnostics";
 import {
   compareOffers,
   confirmOutcome,
   health,
   prepareOutcome,
-  providerDiagnostics,
   providerEvent,
   readOutcome,
   rotateProviderCredentials,
