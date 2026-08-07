@@ -23,34 +23,41 @@
 
 ### 已实现
 
-- 消费者 Web 浏览器入口与 Omniprompt；
+- 空白目标入口的消费者 AI 浏览器首页与 Omniprompt，而不是预填购物任务；
 - 相互独立的普通 Search、Compare、Prepare、Confirm 路径；
 - Brave Search API 实时搜索接口；
 - 可选、有限预算的 OpenAI 自然语言约束提取；
 - Cloudflare Worker API 与 D1 数据库；
 - Provider 与 Offer 导入接口；
+- 每个 Provider 独立的 Offer API Token、Webhook HMAC 密钥与凭证轮换；
+- Provider 自检接口，验证激活状态、Offer 新鲜度和 `readyForTraffic`；
 - 不读取佣金、出价、合作等级和预期收入的独立比较；
 - 用户确认前展示提供方、域名、金额、证据、共享数据与商业披露；
 - Prepare、Confirm、Outcome Receipt 和提供方交接；
-- 随机归因标识；
+- 用户确认成功后才释放当前浏览器 Session 的 Provider continuation；
+- 随机归因标识，且公开 Outcome Receipt 不暴露归因 Token 或 continuation URL；
 - HMAC 签名的 accepted、completed、cancelled、refunded、disputed 结果事件；
 - 结果事件幂等处理与退款、取消、争议状态；
+- 生产请求限流、窗口级匿名客户端哈希、Request ID 与结构化运行日志；
+- 定时清理过期限流数据；
+- OpenAPI 3.1 生产接口契约及 CI 语法校验；
 - 提供方 Outcome Connector 页面与接入 JSON；
 - Web 类型检查、单元测试、生产构建、桌面和移动端 Playwright 契约测试；
-- API 严格 TypeScript 检查；
-- 受控的 Worker 与 GitHub Pages 部署工作流。
+- API 严格 TypeScript 检查与安全、运行、Provider Diagnostics 测试；
+- 锁定依赖的 `npm ci`、生产依赖审计、受控 Worker 与 GitHub Pages 部署工作流。
 
 ### 上线前仍必须完成
 
-- 创建并绑定正式 D1 数据库；
-- 配置 Cloudflare、Brave Search 和提供方密钥；
+- 创建并绑定正式 D1 数据库并执行全部 migration；
+- 配置 Cloudflare、Brave Search、Provider 管理与 Provider 凭证主密钥；
 - 设置准确的 Web/API Origin 与仓库部署变量；
-- 接入并验证至少一个真实提供方、Feed、Sandbox、联盟批准、LOI 或商业集成；
+- 建立安全的 Provider 凭证交付渠道；
+- 接入并验证至少一个真实 Provider、Feed、Sandbox、联盟批准、LOI 或商业集成；
 - 发布隐私政策、条款、删除流程与支持联系方式；
-- 配置限额、告警、监控、备份、滥用防护和事故响应；
+- 配置生产告警阈值、备份、事故响应和运行责任人；
 - 在桌面和移动设备验证公开 URL。
 
-生产环境不会在 API 或提供方失败时自动用演示结果冒充实时数据。测试 Fixture 只允许存在于自动化测试和明确的本地测试环境。
+生产环境不会在 API 或 Provider 失败时用缓存或 Fixture 冒充实时结果。Fixture 只存在于自动化测试或明确的本地测试环境。
 
 ## 第一版正式任务
 
@@ -67,9 +74,11 @@
         ↓
 用户选择提供方并查看证据
         ↓
-浏览器创建 Prepare 与归因记录
+浏览器创建 Prepare 与内部归因记录
         ↓
-用户确认提供方交接
+用户明确确认提供方交接
+        ↓
+当前浏览器 Session 获得 Provider continuation
         ↓
 提供方回传接受、完成、取消、退款或争议
         ↓
@@ -102,10 +111,10 @@
 
 ## 项目结构
 
-- [`apps/web`](apps/web)：消费者 Web 产品与提供方接入页面；
-- [`apps/api`](apps/api)：Cloudflare Worker、D1、搜索、Provider Offer、Prepare、Outcome 与回调；
-- `apps/extension`：后续 Chrome／Edge 扩展；
-- `apps/desktop`：后续桌面 AI 浏览器；
+- [`apps/web`](apps/web)：消费者 Web 产品与 Provider 接入页面；
+- [`apps/api`](apps/api)：Cloudflare Worker、D1、搜索、Provider Offer、Prepare、Outcome、运行保护与回调；
+- `apps/extension`：后续 Chrome／Edge 当前页上下文入口；
+- `apps/desktop`：后续桌面 AI 浏览器外壳；
 - `crates`：后续共享 Rust 本地策略核心；
 - `docs`：产品、设计、架构、安全、隐私、验证与商业边界；
 - `sdk`：后续开放 SDK；
@@ -123,7 +132,7 @@
 
 ```bash
 cd apps/api
-npm install
+npm ci
 cp .dev.vars.example .dev.vars
 # 创建 D1，并将 database_id 写入 wrangler.toml
 npm run db:migrate:local
@@ -136,7 +145,7 @@ npm run dev
 
 ```bash
 cd apps/web
-npm install
+npm ci
 cp .env.example .env.local
 npm run dev
 ```
@@ -153,13 +162,13 @@ npm run test:e2e
 ## 当前执行顺序
 
 1. 合并产品定位与 Production V1；
-2. 创建 D1、配置 API 与费用上限；
+2. 创建正式 D1 并配置生产 API、Origin、密钥与告警；
 3. 发布生产 Web/API URL；
-4. 接入至少一个真实 Provider 或合作网络；
-5. 同步开展提供方销售，不等待完整桌面浏览器；
+4. 接入至少一个真实 Provider 或合作网络并通过 Diagnostics；
+5. 同步开展 Provider 销售，不等待完整桌面浏览器；
 6. 运行至少 50 个免费消费者真实任务；
 7. 计算每 100 个任务的完整成本、结果收入和毛贡献；
-8. 根据真实数据决定继续扩展、优化、融资或停止。
+8. 根据真实数据决定扩展任务类别、浏览器外壳、融资或停止。
 
 商业启动任务见 [Issue #2](https://github.com/ZqiEE/ai-action-browser/issues/2)。
 
@@ -170,7 +179,7 @@ npm run test:e2e
 3. 普通 Search 始终可用，系统不得秘密升级行为。
 4. 模型提出建议，确定性代码验证权限、Schema、目标、风险和结果状态。
 5. 推荐排序不得读取商业出价、佣金、合作等级或预期收入。
-6. 提供方付款不得购买“最佳推荐”。
+6. Provider 付款不得购买“最佳推荐”。
 7. 关键交接必须展示真实目标域名、金额、共享数据和商业披露。
 8. 结果必须可归因、可反转、可争议并可审计。
 9. 用户数据最小化收集，默认不用于训练。
