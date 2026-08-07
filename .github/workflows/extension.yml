@@ -35,6 +35,7 @@ jobs:
           node --check apps/extension/service-worker.js
           node --check apps/extension/sidepanel.js
           node --check apps/extension/lib/context.mjs
+          node --check apps/extension/lib/page-read.mjs
       - name: Validate privacy-bounded Manifest V3
         run: node apps/extension/scripts/validate-manifest.mjs
       - name: Run extension tests
