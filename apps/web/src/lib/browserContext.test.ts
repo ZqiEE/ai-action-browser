@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contextualizeGoal, readBrowserPageContext } from "./browserContext";
+import { addBrowserPageContext, readBrowserPageContext } from "./browserContext";
 
 describe("browser extension context", () => {
   it("accepts only explicit extension context and strips sensitive URL parts", () => {
@@ -30,23 +30,25 @@ describe("browser extension context", () => {
     ).toBeNull();
   });
 
-  it("keeps the user goal and bounded current-page context inside upstream query limits", () => {
-    const context = readBrowserPageContext(
-      new URLSearchParams({
-        ctx_source: "extension",
-        ctx_title: "Laptop product page",
-        ctx_url: "https://shop.example/products/laptop-1",
-      }),
+  it("keeps current-page metadata separate from the user goal", () => {
+    const params = addBrowserPageContext(
+      new URLSearchParams({ q: "Compare this with better laptops under $1,000" }),
+      {
+        source: "extension",
+        title: "Laptop product page",
+        url: "https://shop.example/products/laptop-1",
+        hostname: "shop.example",
+      },
     );
-    const query = contextualizeGoal("Compare this with better laptops under $1,000", context, 500);
 
-    expect(query).toContain("User goal: Compare this with better laptops under $1,000");
-    expect(query).toContain("Current page title: Laptop product page");
-    expect(query).toContain("Current page URL: https://shop.example/products/laptop-1");
-    expect(query.length).toBeLessThanOrEqual(500);
+    expect(params.get("q")).toBe("Compare this with better laptops under $1,000");
+    expect(params.get("ctx_title")).toBe("Laptop product page");
+    expect(params.get("ctx_url")).toBe("https://shop.example/products/laptop-1");
   });
 
-  it("leaves a normal browser goal unchanged when no extension context is present", () => {
-    expect(contextualizeGoal("normal Web search", null, 500)).toBe("normal Web search");
+  it("does not add context fields when no extension context is present", () => {
+    const params = addBrowserPageContext(new URLSearchParams({ q: "normal Web search" }), null);
+    expect(params.get("q")).toBe("normal Web search");
+    expect([...params.keys()].some((key) => key.startsWith("ctx_"))).toBe(false);
   });
 });
