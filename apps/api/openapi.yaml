@@ -7,7 +7,8 @@ info:
     Consumer endpoints never accept commission, bid, partner-tier, or expected-revenue inputs.
     Provider payment cannot purchase independent ranking. Each Provider receives isolated Offer API
     and outcome-signing credentials derived from platform master secrets; platform master secrets
-    are never shared with Providers.
+    are never shared with Providers. The attributed Provider handoff URL is withheld until explicit
+    consumer confirmation and is not included in the public outcome receipt.
 servers:
   - url: https://api.example.invalid
     description: Replace with the deployed Worker origin.
@@ -110,7 +111,7 @@ paths:
                   default: laptop
       responses:
         "200":
-          description: Independent provider comparison.
+          description: Independent Provider comparison.
           content:
             application/json:
               schema:
@@ -147,6 +148,10 @@ paths:
     post:
       tags: [Consumer]
       operationId: prepareOutcome
+      description: |
+        Creates an internal attributed outcome record but deliberately withholds both the
+        attribution token and the attributed Provider handoff URL. No external action capability is
+        released by this endpoint.
       requestBody:
         required: true
         content:
@@ -165,7 +170,7 @@ paths:
                   maxLength: 1000
       responses:
         "201":
-          description: Prepared provider handoff. No external action has been authorized yet.
+          description: Prepared Provider handoff without a usable external handoff capability.
           content:
             application/json:
               schema:
@@ -176,6 +181,9 @@ paths:
     post:
       tags: [Consumer]
       operationId: confirmOutcome
+      description: |
+        Records explicit consumer confirmation. `continueUrl` is the only consumer API response
+        that releases the attributed Provider handoff capability.
       parameters:
         - $ref: "#/components/parameters/OutcomeId"
       requestBody:
@@ -191,7 +199,7 @@ paths:
                   const: true
       responses:
         "200":
-          description: Consumer-authorized handoff.
+          description: Consumer-authorized handoff with a continuation capability.
           content:
             application/json:
               schema:
@@ -203,12 +211,16 @@ paths:
                   continueUrl:
                     type: string
                     format: uri
+                    description: Attributed Provider URL released only after confirmation.
         "409":
           $ref: "#/components/responses/Error"
   /v1/outcomes/{outcomeId}:
     get:
       tags: [Consumer]
       operationId: getOutcome
+      description: |
+        Returns the auditable result record and Provider event history. It does not expose the
+        attribution token or attributed handoff URL.
       parameters:
         - $ref: "#/components/parameters/OutcomeId"
       responses:
@@ -652,8 +664,6 @@ components:
         - taskId
         - status
         - offer
-        - attributionToken
-        - handoffUrl
         - reversalDeadline
         - userConfirmationRequired
       properties:
@@ -665,11 +675,6 @@ components:
           const: prepared
         offer:
           $ref: "#/components/schemas/OfferView"
-        attributionToken:
-          type: string
-        handoffUrl:
-          type: string
-          format: uri
         reversalDeadline:
           type: string
           format: date-time
@@ -685,12 +690,10 @@ components:
         - providerId
         - providerName
         - providerDomain
-        - attributionToken
         - status
         - amount
         - currency
         - userConfirmed
-        - handoffUrl
         - createdAt
         - updatedAt
       properties:
@@ -708,8 +711,6 @@ components:
           type: string
         providerDomain:
           type: string
-        attributionToken:
-          type: string
         status:
           $ref: "#/components/schemas/OutcomeStatus"
         amount:
@@ -718,9 +719,6 @@ components:
           type: string
         userConfirmed:
           type: boolean
-        handoffUrl:
-          type: string
-          format: uri
         completionEvidence:
           type: [string, "null"]
         reversalDeadline:
