@@ -1,17 +1,19 @@
 openapi: 3.1.0
 info:
   title: AI Action Browser Outcome API
-  version: 0.4.0
+  version: 0.5.0
   description: |
-    Production contract for the first deployable task path of the free AI browser.
-    AI Action Browser is the product category; U.S. laptop discovery is the first commercially
-    validated Provider category, while Compare can match any active Provider category. Consumer
-    endpoints never accept commission, bid, partner-tier, or expected-revenue inputs. Provider
-    payment cannot purchase independent ranking.
+    Production contract for the free AI browser. U.S. laptop discovery is the first commercial
+    validation category, not the browser category and not a hard-coded Compare default.
 
-    Non-health routes use bounded per-minute request budgets. Every response carries X-Request-Id;
-    rate-limited routes also expose rate-limit metadata. The attributed Provider continuation URL is
-    withheld until explicit consumer confirmation and is omitted from the public Outcome Receipt.
+    Consumer pageContext is transient request context. The server re-validates it, removes URL
+    credentials, query parameters, and fragments, and uses it only for the current Search or Compare
+    discovery request. Compare persists only the user's query in the task record and sends only that
+    query to optional model-based constraint extraction.
+
+    Consumer endpoints never accept commission, bid, partner-tier, or expected-revenue inputs.
+    Provider payment cannot purchase independent ranking. Provider continuation URLs remain withheld
+    until explicit consumer confirmation and are omitted from public Outcome Receipts.
 servers:
   - url: https://api.example.invalid
     description: Replace with the deployed Worker origin.
@@ -31,17 +33,18 @@ paths:
         "200":
           description: Runtime and integration configuration status.
           headers:
-            X-Request-Id:
-              $ref: "#/components/headers/RequestId"
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/Health"
+              schema: { $ref: "#/components/schemas/Health" }
 
   /v1/search:
     post:
       tags: [Consumer]
       operationId: searchWeb
+      description: |
+        Executes live Web search. Optional pageContext is transient discovery context and is not a
+        replacement for the user's query.
       requestBody:
         required: true
         content:
@@ -51,15 +54,9 @@ paths:
               additionalProperties: false
               required: [query]
               properties:
-                query:
-                  type: string
-                  minLength: 1
-                  maxLength: 500
-                count:
-                  type: integer
-                  minimum: 1
-                  maximum: 10
-                  default: 8
+                query: { type: string, minLength: 1, maxLength: 500 }
+                count: { type: integer, minimum: 1, maximum: 10, default: 8 }
+                pageContext: { $ref: "#/components/schemas/BrowserPageContextInput" }
       responses:
         "200":
           description: Live public Web search results.
@@ -72,14 +69,16 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [query, results, source, durationMs]
+                required: [query, results, source, durationMs, pageContextUsed]
                 properties:
                   query: { type: string }
                   source: { const: brave_web_search }
                   durationMs: { type: integer }
+                  pageContextUsed: { type: boolean }
                   results:
                     type: array
                     items: { $ref: "#/components/schemas/SearchResult" }
+        "400": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/RateLimited" }
         "503": { $ref: "#/components/responses/Error" }
 
@@ -88,9 +87,10 @@ paths:
       tags: [Consumer]
       operationId: compareOffers
       description: |
-        Independently matches the user goal against active Provider Offers. `category` is an optional
-        exact Provider-category constraint; when omitted, relevance is determined from the user goal
-        and Provider Offer content without commercial ranking inputs.
+        Independently matches the user's goal against active Provider Offers. category is an
+        optional exact Provider-category constraint. When omitted, deterministic relevance is based
+        on the user goal plus transient pageContext and Provider Offer content. Constraint extraction
+        receives only the user's query. The task record stores only the user's query, never pageContext.
       requestBody:
         required: true
         content:
@@ -100,13 +100,11 @@ paths:
               additionalProperties: false
               required: [query]
               properties:
-                query:
-                  type: string
-                  minLength: 1
-                  maxLength: 1000
+                query: { type: string, minLength: 1, maxLength: 1000 }
                 category:
                   type: string
                   pattern: "^[a-z0-9][a-z0-9._-]*$"
+                pageContext: { $ref: "#/components/schemas/BrowserPageContextInput" }
       responses:
         "200":
           description: Independent relevance comparison of active Provider Offers.
@@ -117,8 +115,8 @@ paths:
             X-RateLimit-Reset: { $ref: "#/components/headers/RateLimitReset" }
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/CompareResponse"
+              schema: { $ref: "#/components/schemas/CompareResponse" }
+        "400": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/RateLimited" }
 
   /v1/prepare:
@@ -126,8 +124,8 @@ paths:
       tags: [Consumer]
       operationId: prepareOutcome
       description: |
-        Creates an internal attribution record for the selected Provider Offer. This endpoint does
-        not return an attribution token or a usable Provider continuation URL.
+        Creates an internal attribution record for the selected Provider Offer. It does not return
+        an attribution token or usable Provider continuation URL.
       requestBody:
         required: true
         content:
@@ -139,9 +137,7 @@ paths:
               properties:
                 offerId: { type: string }
                 taskId: { type: string }
-                query:
-                  type: string
-                  maxLength: 1000
+                query: { type: string, maxLength: 1000 }
       responses:
         "201":
           description: Provider handoff prepared; external action remains unauthorized.
@@ -152,8 +148,7 @@ paths:
             X-RateLimit-Reset: { $ref: "#/components/headers/RateLimitReset" }
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/PreparedOutcome"
+              schema: { $ref: "#/components/schemas/PreparedOutcome" }
         "404": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/RateLimited" }
 
@@ -175,7 +170,7 @@ paths:
                 confirmed: { const: true }
       responses:
         "200":
-          description: Consumer-confirmed handoff. This is the only consumer endpoint that releases continueUrl.
+          description: Consumer-confirmed handoff; the only consumer response that releases continueUrl.
           headers:
             X-Request-Id: { $ref: "#/components/headers/RequestId" }
             X-RateLimit-Limit: { $ref: "#/components/headers/RateLimitLimit" }
@@ -189,9 +184,7 @@ paths:
                 required: [outcome, continueUrl]
                 properties:
                   outcome: { $ref: "#/components/schemas/Outcome" }
-                  continueUrl:
-                    type: string
-                    format: uri
+                  continueUrl: { type: string, format: uri }
         "409": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/RateLimited" }
 
@@ -199,7 +192,7 @@ paths:
     get:
       tags: [Consumer]
       operationId: getOutcome
-      description: Public auditable receipt. It never returns the attribution token or Provider continuation URL.
+      description: Public auditable receipt without attribution token or Provider continuation URL.
       parameters:
         - $ref: "#/components/parameters/OutcomeId"
       responses:
@@ -229,7 +222,6 @@ paths:
       operationId: upsertProvider
       security:
         - ProviderAdminBearer: []
-      description: Platform-only Provider provisioning. Platform master secrets are never returned.
       requestBody:
         required: true
         content:
@@ -237,7 +229,7 @@ paths:
             schema: { $ref: "#/components/schemas/ProviderInput" }
       responses:
         "201":
-          description: Provider created or updated and current Provider-scoped credentials issued.
+          description: Provider created or updated with current Provider-scoped credentials.
           headers:
             X-Request-Id: { $ref: "#/components/headers/RequestId" }
           content:
@@ -255,7 +247,6 @@ paths:
         - ProviderAdminBearer: []
       parameters:
         - $ref: "#/components/parameters/ProviderId"
-      description: Rotates only this Provider's API token and webhook signing secret.
       responses:
         "200":
           description: Replacement Provider-scoped credentials.
@@ -282,13 +273,9 @@ paths:
         - ProviderAdminBearer: []
       parameters:
         - $ref: "#/components/parameters/ProviderId"
-      description: |
-        Authenticated Provider self-check. Returns no secrets and reports activation, current
-        credential version, Offer freshness, aggregated outcome states, and readiness for traffic.
-        An active Offer is stale after 24 hours in V1.
       responses:
         "200":
-          description: Provider production-readiness diagnostics.
+          description: Provider activation, credential, Offer freshness, outcome, and traffic-readiness diagnostics.
           headers:
             X-Request-Id: { $ref: "#/components/headers/RequestId" }
             X-RateLimit-Limit: { $ref: "#/components/headers/RateLimitLimit" }
@@ -310,7 +297,6 @@ paths:
         - ProviderAdminBearer: []
       parameters:
         - $ref: "#/components/parameters/ProviderId"
-      description: Provider-scoped Offer ingestion. A Provider token cannot write another Provider's Offers.
       requestBody:
         required: true
         content:
@@ -349,9 +335,7 @@ paths:
       operationId: recordProviderOutcomeEvent
       description: |
         Sign the exact UTF-8 JSON body with HMAC-SHA256 using this Provider's current
-        webhookSigningSecret. Send the lowercase hex digest as X-AAB-Signature: sha256=<digest>.
-        providerId is part of the signed body, must own the attribution token, and the consumer must
-        have confirmed the handoff before any Provider result event is accepted.
+        webhookSigningSecret and send X-AAB-Signature: sha256=<lowercase hex digest>.
       parameters:
         - name: X-AAB-Signature
           in: header
@@ -366,7 +350,7 @@ paths:
             schema: { $ref: "#/components/schemas/ProviderEvent" }
       responses:
         "200":
-          description: Event accepted or recognized as an idempotent duplicate for this Provider.
+          description: Event accepted or recognized as a Provider-scoped idempotent duplicate.
           headers:
             X-Request-Id: { $ref: "#/components/headers/RequestId" }
           content:
@@ -410,16 +394,16 @@ components:
 
   headers:
     RequestId:
-      description: Correlation id for this request. Safe caller-provided ids may be preserved.
+      description: Correlation id for this request.
       schema: { type: string }
     RateLimitLimit:
-      description: Maximum requests allowed in the current one-minute route budget.
+      description: Maximum requests in the current one-minute route budget.
       schema: { type: integer }
     RateLimitRemaining:
       description: Remaining requests in the current one-minute route budget.
       schema: { type: integer, minimum: 0 }
     RateLimitReset:
-      description: Unix timestamp in seconds when the current route budget resets.
+      description: Unix timestamp in seconds when the route budget resets.
       schema: { type: integer }
 
   responses:
@@ -455,6 +439,17 @@ components:
           properties:
             code: { type: string }
             message: { type: string }
+
+    BrowserPageContextInput:
+      type: object
+      additionalProperties: false
+      required: [url]
+      description: |
+        Transient browser discovery context. It is re-sanitized server-side and is not persisted in
+        Compare task records. URL credentials are rejected; query parameters and fragments are removed.
+      properties:
+        title: { type: string, maxLength: 240 }
+        url: { type: string, format: uri, maxLength: 1800 }
 
     Health:
       type: object
@@ -499,7 +494,7 @@ components:
 
     CompareResponse:
       type: object
-      required: [taskId, query, category, constraints, recommendations, incomplete, recommendationPolicy]
+      required: [taskId, query, category, constraints, recommendations, incomplete, pageContextUsed, recommendationPolicy]
       properties:
         taskId: { type: string }
         query: { type: string }
@@ -510,6 +505,7 @@ components:
           maxItems: 3
           items: { $ref: "#/components/schemas/OfferView" }
         incomplete: { type: boolean }
+        pageContextUsed: { type: boolean }
         message: { type: string }
         recommendationPolicy: { $ref: "#/components/schemas/RecommendationPolicy" }
 
@@ -518,13 +514,9 @@ components:
       additionalProperties: false
       required: [id, name, domain]
       properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9._-]*$"
+        id: { type: string, pattern: "^[a-z0-9][a-z0-9._-]*$" }
         name: { type: string, minLength: 1, maxLength: 200 }
-        domain:
-          type: string
-          description: Public hostname only, without scheme, path, port, or credentials.
+        domain: { type: string }
         active: { type: boolean, default: true }
 
     ProviderCredentials:
@@ -533,14 +525,8 @@ components:
       required: [credentialVersion, apiToken, webhookSigningSecret]
       properties:
         credentialVersion: { type: integer, minimum: 1 }
-        apiToken:
-          type: string
-          writeOnly: true
-          description: Provider-scoped bearer token for Offer ingestion and diagnostics.
-        webhookSigningSecret:
-          type: string
-          writeOnly: true
-          description: Provider-scoped HMAC secret for outcome callbacks.
+        apiToken: { type: string, writeOnly: true }
+        webhookSigningSecret: { type: string, writeOnly: true }
 
     ProviderProvisioning:
       type: object
@@ -603,12 +589,8 @@ components:
       additionalProperties: false
       required: [id, category, title, price, currency, availability, prepareUrl, sourceUrl, retrievedAt]
       properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9._-]*$"
-        category:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9._-]*$"
+        id: { type: string, pattern: "^[a-z0-9][a-z0-9._-]*$" }
+        category: { type: string, pattern: "^[a-z0-9][a-z0-9._-]*$" }
         title: { type: string, minLength: 1, maxLength: 300 }
         description: { type: string, maxLength: 2000 }
         price: { type: number, minimum: 0, maximum: 1000000 }
@@ -617,17 +599,9 @@ components:
         deliveryText: { type: string, maxLength: 300 }
         returnsText: { type: string, maxLength: 300 }
         warrantyText: { type: string, maxLength: 300 }
-        prepareUrl:
-          type: string
-          format: uri
-          description: HTTPS URL on the Provider hostname or one of its subdomains.
-        sourceUrl:
-          type: string
-          format: uri
-          description: HTTPS URL on the Provider hostname or one of its subdomains.
-        evidence:
-          type: object
-          additionalProperties: true
+        prepareUrl: { type: string, format: uri }
+        sourceUrl: { type: string, format: uri }
+        evidence: { type: object, additionalProperties: true }
         retrievedAt: { type: string, format: date-time }
         active: { type: boolean, default: true }
 
@@ -650,15 +624,9 @@ components:
         warranty: { type: string }
         sourceUrl: { type: string, format: uri }
         retrievedAt: { type: string, format: date-time }
-        strengths:
-          type: array
-          items: { type: string }
-        tradeoffs:
-          type: array
-          items: { type: string }
-        evidence:
-          type: object
-          additionalProperties: true
+        strengths: { type: array, items: { type: string } }
+        tradeoffs: { type: array, items: { type: string } }
+        evidence: { type: object, additionalProperties: true }
         recommendationIndependent: { const: true }
 
     PreparedOutcome:
@@ -675,7 +643,7 @@ components:
 
     Outcome:
       type: object
-      description: Public outcome view. Attribution token and Provider continuation URL are intentionally omitted.
+      description: Public outcome view; attribution token and Provider continuation URL are omitted.
       required: [id, taskId, offerId, offerTitle, providerId, providerName, providerDomain, status, amount, currency, userConfirmed, createdAt, updatedAt]
       properties:
         id: { type: string }
@@ -691,9 +659,7 @@ components:
         amount: { type: number }
         currency: { type: string }
         userConfirmed: { type: boolean }
-        completionEvidence:
-          type: [object, "null"]
-          additionalProperties: true
+        completionEvidence: { type: [object, "null"], additionalProperties: true }
         reversalDeadline: { type: [string, "null"], format: date-time }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
@@ -703,18 +669,14 @@ components:
       additionalProperties: false
       required: [providerId, eventId, attributionToken, status, occurredAt]
       properties:
-        providerId:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9._-]*$"
+        providerId: { type: string, pattern: "^[a-z0-9][a-z0-9._-]*$" }
         eventId: { type: string }
         attributionToken: { type: string }
         status:
           type: string
           enum: [accepted, completed, cancelled, refunded, disputed]
         occurredAt: { type: string, format: date-time }
-        evidence:
-          type: object
-          additionalProperties: true
+        evidence: { type: object, additionalProperties: true }
 
     OutcomeEvent:
       type: object
@@ -728,6 +690,4 @@ components:
           enum: [accepted, completed, cancelled, refunded, disputed]
         occurredAt: { type: string, format: date-time }
         receivedAt: { type: string, format: date-time }
-        evidence:
-          type: object
-          additionalProperties: true
+        evidence: { type: object, additionalProperties: true }
