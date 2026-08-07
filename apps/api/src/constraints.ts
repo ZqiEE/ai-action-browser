@@ -21,7 +21,7 @@ export function fallbackConstraints(query: string): Constraints {
   const lower = query.toLowerCase();
   return {
     budget: parseBudget(query),
-    useCase: lower.includes("video") || query.includes("视频") ? "video editing" : "general use",
+    useCase: lower.includes("video edit") || query.includes("视频剪辑") ? "video editing" : "not specified",
     delivery: lower.includes("next week") || query.includes("下周") ? "by next week" : "not specified",
     returns: lower.includes("free return") || query.includes("免费退") ? "free returns" : "not specified",
   };
@@ -67,14 +67,14 @@ export async function extractConstraints(query: string, env: Env): Promise<Const
             {
               role: "system",
               content:
-                "Extract only explicit shopping constraints. Do not invent requirements. Return the requested JSON schema.",
+                "Extract only comparison constraints explicitly stated by the user. Do not invent requirements. `useCase` is the explicit intended purpose or use, `delivery` is only an explicit timing/arrival requirement, and `returns` is only an explicit return/refund/cancellation requirement. Use `not specified` when a field is absent. Return only the requested JSON schema.",
             },
             { role: "user", content: query },
           ],
           text: {
             format: {
               type: "json_schema",
-              name: "laptop_constraints",
+              name: "comparison_constraints",
               strict: true,
               schema: {
                 type: "object",
