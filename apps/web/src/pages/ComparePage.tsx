@@ -8,6 +8,11 @@ import {
   type LiveCompareResponse,
   type LiveRecommendation,
 } from "@/lib/api";
+import {
+  addBrowserPageContext,
+  contextualizeGoal,
+  readBrowserPageContext,
+} from "@/lib/browserContext";
 import { formatCurrency, resolveLocale } from "@/lib/locale";
 
 function conditionRows(result: LiveCompareResponse) {
@@ -34,6 +39,15 @@ export function ComparePage() {
   const [searchParams] = useSearchParams();
   const locale = resolveLocale();
   const query = searchParams.get("q")?.trim() || "laptop for video editing";
+  const pageContext = useMemo(() => readBrowserPageContext(searchParams), [searchParams]);
+  const requestQuery = useMemo(
+    () => contextualizeGoal(query, pageContext, 1_000),
+    [pageContext, query],
+  );
+  const normalSearchUrl = useMemo(() => {
+    const params = addBrowserPageContext(new URLSearchParams({ q: query }), pageContext);
+    return `/search?${params.toString()}`;
+  }, [pageContext, query]);
   const [result, setResult] = useState<LiveCompareResponse | null>(null);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -46,7 +60,7 @@ export function ComparePage() {
     setResult(null);
     setSelectedId("");
 
-    compareGoal(query)
+    compareGoal(requestQuery)
       .then((value) => {
         if (!active) return;
         setResult(value);
@@ -67,7 +81,7 @@ export function ComparePage() {
     return () => {
       active = false;
     };
-  }, [query]);
+  }, [requestQuery]);
 
   const selected = useMemo<LiveRecommendation | undefined>(() => {
     if (!result) return undefined;
@@ -84,6 +98,14 @@ export function ComparePage() {
         </div>
         <Button variant="secondary" onClick={() => navigate("/")}>Change request</Button>
       </section>
+
+      {pageContext && (
+        <div className="inline-alert" role="note">
+          <strong>Using current page context</strong>
+          <p>{pageContext.title} · {pageContext.hostname}</p>
+          <p>The browser extension supplied only the page title and privacy-bounded URL you chose to include.</p>
+        </div>
+      )}
 
       <p className="demo-banner" role="note">
         Provider commission, bids, partner level, and expected revenue are not available to the
@@ -109,7 +131,7 @@ export function ComparePage() {
         <div className="empty-state" role="status">
           <h2>No active provider offers</h2>
           <p>{result.message ?? "The first production category does not have live supply yet."}</p>
-          <Button variant="secondary" onClick={() => navigate(`/search?q=${encodeURIComponent(query)}`)}>
+          <Button variant="secondary" onClick={() => navigate(normalSearchUrl)}>
             Use normal Search
           </Button>
         </div>
