@@ -64,7 +64,8 @@ Malformed encoded dynamic paths must recover to the safe not-found route instead
 - expired rate-limit buckets are removed by a scheduled Worker cleanup;
 - every response receives a request id and rate-limit metadata where applicable;
 - structured request logging excludes request bodies, search text, browsing history, Provider secrets, and attribution tokens;
-- recommendation queries do not receive commission, bids, partner tier, or expected revenue.
+- recommendation queries do not receive commission, bids, partner tier, or expected revenue;
+- production-facing documentation links target stable `main` paths rather than temporary feature branches.
 
 ## External launch gates
 
