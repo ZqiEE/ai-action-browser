@@ -20,17 +20,18 @@ const providerFeedExample = {
       prepareUrl: "https://provider.example/action/offer-123",
       sourceUrl: "https://provider.example/products/offer-123",
       evidence: { sourceType: "provider_feed" },
-      retrievedAt: "2026-08-06T12:00:00Z",
+      retrievedAt: "2026-08-07T12:00:00Z",
       active: true,
     },
   ],
 };
 
 const outcomeExample = {
+  providerId: "provider-example",
   eventId: "provider-event-123",
   attributionToken: "attr_example",
   status: "completed",
-  occurredAt: "2026-08-06T12:30:00Z",
+  occurredAt: "2026-08-07T12:30:00Z",
   evidence: {
     providerOrderReference: "ORDER-123",
   },
@@ -55,7 +56,7 @@ export function ProviderPage() {
         <p>
           AI Action Browser is completely free for consumers. Providers connect active evidence
           and a user-authorized handoff, then report accepted, completed, cancelled, refunded, or
-          disputed outcomes through a signed event endpoint.
+          disputed outcomes through a Provider-scoped signed event endpoint.
         </p>
         <div className="provider-hero__actions">
           <Link className="button button--primary" to="/compare?q=Find%20a%20laptop%20under%20%241%2C000&mode=compare">
@@ -73,9 +74,9 @@ export function ProviderPage() {
       </header>
 
       <p className="demo-banner" role="note">
-        A commercial provider becomes visible to consumers only after its feed, destination,
-        attribution, outcome contract, privacy boundary, and operational status are verified.
-        Payment does not purchase the independent best-result position.
+        A commercial Provider becomes visible to consumers only after its feed, destination,
+        attribution, outcome contract, privacy boundary, credentials, and operational status are
+        verified. Payment does not purchase the independent best-result position.
       </p>
 
       <section className="provider-grid" aria-label="Provider value">
@@ -93,9 +94,10 @@ export function ProviderPage() {
           <h2>Software and outcome connection</h2>
           <ul>
             <li>Normalized Offer and evidence ingestion.</li>
-            <li>Freshness, availability, final-price, return, and warranty fields.</li>
+            <li>Provider-scoped API token for Offer imports.</li>
+            <li>Provider-scoped HMAC secret for outcome callbacks.</li>
+            <li>Independent credential rotation without exposing platform master secrets.</li>
             <li>User-confirmed Prepare handoff with a random attribution token.</li>
-            <li>Signed completion, cancellation, refund, and dispute events.</li>
           </ul>
         </article>
         <article>
@@ -121,9 +123,9 @@ export function ProviderPage() {
           </p>
         </div>
         <ol className="outcome-steps">
-          <li><strong>Prepared</strong><span>The browser has a reviewed provider action ready.</span></li>
+          <li><strong>Prepared</strong><span>The browser has a reviewed Provider action ready.</span></li>
           <li><strong>Confirmed</strong><span>The user explicitly authorizes the handoff.</span></li>
-          <li><strong>Accepted</strong><span>The provider accepts the attributed request.</span></li>
+          <li><strong>Accepted</strong><span>The Provider accepts the attributed request.</span></li>
           <li><strong>Completed</strong><span>The agreed commercial result is reached.</span></li>
           <li><strong>Reversed</strong><span>A cancellation, refund, or dispute reverses settlement.</span></li>
         </ol>
@@ -153,13 +155,14 @@ export function ProviderPage() {
       <section className="provider-contract" aria-labelledby="go-live-title">
         <div>
           <p className="eyebrow">Go-live requirements</p>
-          <h2 id="go-live-title">What a first provider supplies</h2>
+          <h2 id="go-live-title">What a first Provider supplies</h2>
         </div>
         <ol className="outcome-steps">
-          <li><strong>Feed</strong><span>Active offers and evidence with retrieval timestamps.</span></li>
+          <li><strong>Feed</strong><span>Active Offers and evidence with retrieval timestamps.</span></li>
           <li><strong>Action</strong><span>An HTTPS destination or constrained Action endpoint.</span></li>
           <li><strong>Contract</strong><span>A precise billable result and reversal policy.</span></li>
-          <li><strong>Webhook</strong><span>HMAC-signed outcome events with idempotent event ids.</span></li>
+          <li><strong>Credentials</strong><span>Its scoped Offer API token and webhook signing secret.</span></li>
+          <li><strong>Webhook</strong><span>HMAC-signed outcome events with Provider-scoped idempotent event ids.</span></li>
           <li><strong>Review</strong><span>Security, privacy, legal, and recommendation-independence approval.</span></li>
         </ol>
       </section>
