@@ -20,8 +20,15 @@ Changes to this shared checklist must trigger the Production API, Web applicatio
 - Compare has no implicit `laptop` category; `category` is an optional exact Provider-category constraint;
 - when `category` is omitted, active Provider Offers are ranked by deterministic relevance to the user goal and explicit constraints, without commercial fields;
 - category-neutral relevance tests cover software, laptop, travel, sparse explicit-category queries, and refusal to guess across unrelated supply;
+- browser `pageContext` is an optional structured request field rather than text merged into `query`;
+- the API re-validates pageContext URL protocol and rejects embedded credentials even if a client bypasses extension-side sanitization;
+- the API removes pageContext query parameters and fragments again server-side;
+- Search may use sanitized pageContext only for the current upstream discovery request;
+- Compare may use sanitized pageContext only for transient relevance matching;
+- Compare sends only the user's explicit `query` to model-based constraint extraction;
+- Compare persists only the user's explicit `query` in `tasks.query`; pageContext title and URL are not written to the task row;
 - Provider Offer delivery, return/refund, and warranty/service text are optional category-specific fields rather than universal requirements;
-- the checked-in OpenAPI contract describes category-neutral Compare, nullable resolved category, optional category-specific Offer terms, every public production route, Provider diagnostics, confirmation capability boundary, and 429/request-correlation behavior;
+- the checked-in OpenAPI contract describes category-neutral Compare, transient pageContext, nullable resolved category, optional category-specific Offer terms, every public production route, Provider diagnostics, confirmation capability boundary, and 429/request-correlation behavior;
 - production dependency audit with no high-severity findings.
 
 ### Web application
@@ -32,10 +39,12 @@ Changes to this shared checklist must trigger the Production API, Web applicatio
 - production dependency audit with no high-severity findings;
 - Chromium desktop contract flow;
 - WebKit mobile contract flow;
+- Search and Compare keep the user's goal unchanged and send current-page metadata in a separate `pageContext` field;
 - Compare requests omit category unless a trusted flow explicitly supplies one;
 - direct Compare without a goal must not invent a laptop query or start a hidden comparison;
 - Compare renders generic Provider category, availability, amount, and only applicable category-specific facts instead of assuming delivery/returns/warranty are universal;
-- an extension-context contract proves that current-page context reaches Compare while credentials, query parameters, and fragments are stripped before the upstream request.
+- the extension-context contract proves that `query` remains the original user goal, category is not secretly injected, and pageContext contains only the title plus privacy-bounded URL;
+- credentials, query parameters, and fragments must not appear anywhere in the outbound API request.
 
 The Web application uses a small native Hash Router instead of the vulnerable React Router production dependency. Existing public route shapes remain stable:
 
@@ -97,6 +106,8 @@ Malformed encoded dynamic paths must recover to the safe not-found route instead
 - recommendation queries do not receive commission, bids, partner tier, expected revenue, or a hidden commerce-selected category;
 - no relevant cross-category Provider match must produce an empty Compare result rather than an unrelated recommendation;
 - browser extension current-page metadata is read only after user invocation, is not persisted by the extension, and can be excluded before starting the task;
+- browser pageContext is transient discovery context and must not become durable browsing-history storage through `tasks.query`;
+- browser pageContext must not be sent to model constraint extraction;
 - browser extension page content is read only after a second explicit action and must be visible/editable before the user can add it to the task;
 - browser extension permissions cannot silently expand without failing the checked-in Manifest validation gate;
 - production-facing documentation links target stable `main` paths rather than temporary feature branches.
@@ -115,6 +126,7 @@ Automation cannot complete these items without the owner accounts and commercial
 - verify that the real Provider passes the authenticated diagnostics endpoint with fresh active Offers;
 - verify the laptop path as the first commercial category without reintroducing laptop as an API or browser-core default;
 - install the packaged extension in real Chrome and Edge, verify current-page metadata on normal Web pages, and verify no context is available on restricted browser pages;
+- inspect production D1 task rows during a browser-context task and verify that page title and page URL are absent from the stored task query;
 - verify explicit page reading on ordinary content pages and verify that login, one-time-code, and payment-card pages suppress content extraction;
 - verify that extracted details remain visible/editable until the user adds them to the task;
 - verify that the extension opens the exact production Web origin and that Search / Compare / Prepare preserve the confirmation boundary;
