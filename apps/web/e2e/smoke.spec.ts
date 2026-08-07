@@ -22,6 +22,8 @@ const recommendation = {
   recommendationIndependent: true,
 };
 
+const compareQuery =
+  "Find a laptop under $1,000 for video editing, delivered by next week, with free returns.";
 const continueUrl = "https://provider.test/action?attr=attr-test-1";
 
 const outcome = {
@@ -42,13 +44,13 @@ const outcome = {
   updatedAt: "2026-08-07T12:01:00Z",
 };
 
-test("consumer can compare, confirm a provider handoff, and view the outcome receipt", async ({ page }) => {
+test("consumer can enter a real browser goal, compare, confirm a provider handoff, and view the outcome receipt", async ({ page }) => {
   await page.route("https://api.contract.test/v1/compare", async (route) => {
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({
         taskId: "task-test-1",
-        query: "Find a laptop under $1,000 for video editing, delivered by next week, with free returns.",
+        query: compareQuery,
         category: "laptop",
         constraints: {
           budget: 1000,
@@ -100,6 +102,8 @@ test("consumer can compare, confirm a provider handoff, and view the outcome rec
   await expect(page.getByRole("heading", { name: /what do you want to find or get done/i })).toBeVisible();
 
   const prompt = page.getByRole("textbox", { name: /search, compare, or prepare/i });
+  await expect(prompt).toHaveValue("");
+  await prompt.fill(compareQuery);
   await prompt.focus();
   await prompt.press("ArrowDown");
   await prompt.press("Enter");
