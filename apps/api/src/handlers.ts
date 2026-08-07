@@ -18,9 +18,11 @@ import {
   appendAttribution,
   assertAdmin,
   assertOutcomeTransition,
+  assertProviderAccess,
   id,
+  issueProviderCredentials,
   nowIso,
-  validSignature,
+  validProviderSignature,
 } from "./security";
 import {
   PROVIDER_OUTCOME_STATUSES,
@@ -123,6 +125,9 @@ export async function health(request: Request, env: Env): Promise<Response> {
     searchConfigured: Boolean(env.BRAVE_SEARCH_API_KEY),
     providerAdminConfigured: Boolean(env.PROVIDER_ADMIN_TOKEN),
     providerWebhookConfigured: Boolean(env.PROVIDER_WEBHOOK_SECRET),
+    providerCredentialIsolationConfigured: Boolean(
+      env.PROVIDER_ADMIN_TOKEN && env.PROVIDER_WEBHOOK_SECRET,
+    ),
     constraintModelConfigured: Boolean(env.OPENAI_API_KEY && env.OPENAI_MODEL),
   });
 }
@@ -268,6 +273,9 @@ export async function compareOffers(request: Request, env: Env): Promise<Respons
 
 export async function upsertProvider(request: Request, env: Env): Promise<Response> {
   assertAdmin(request, env);
+  if (!env.PROVIDER_WEBHOOK_SECRET) {
+    throw new ApiError(503, "provider_credentials_not_configured", "Provider credentials are not configured.");
+  }
   const body = await readJson<ProviderInput>(request, 16 * 1024);
   const providerId = normalizeIdentifier(body.id, 120, "provider_id");
   const name = cleanText(body.name, 200);
@@ -287,7 +295,59 @@ export async function upsertProvider(request: Request, env: Env): Promise<Respon
     .bind(providerId, name, domain, body.active === false ? 0 : 1, timestamp, timestamp)
     .run();
 
-  return json(request, env, { id: providerId, name, domain, active: body.active !== false }, 201);
+  const provider = await env.DB.prepare(
+    "SELECT id, name, domain, active, credential_version FROM providers WHERE id = ?",
+  )
+    .bind(providerId)
+    .first<ProviderRow>();
+  if (!provider) throw new ApiError(500, "provider_write_failed", "Provider could not be read after update.");
+  const credentials = await issueProviderCredentials(env, provider.id, provider.credential_version);
+
+  return json(
+    request,
+    env,
+    {
+      id: provider.id,
+      name: provider.name,
+      domain: provider.domain,
+      active: provider.active === 1,
+      credentials,
+    },
+    201,
+  );
+}
+
+export async function rotateProviderCredentials(
+  request: Request,
+  env: Env,
+  providerIdValue: string,
+): Promise<Response> {
+  assertAdmin(request, env);
+  if (!env.PROVIDER_WEBHOOK_SECRET) {
+    throw new ApiError(503, "provider_credentials_not_configured", "Provider credentials are not configured.");
+  }
+  const providerId = normalizeIdentifier(providerIdValue, 120, "provider_id");
+  const existing = await env.DB.prepare(
+    "SELECT id FROM providers WHERE id = ?",
+  )
+    .bind(providerId)
+    .first<{ id: string }>();
+  if (!existing) throw new ApiError(404, "provider_not_found", "Provider was not found.");
+
+  await env.DB.prepare(
+    "UPDATE providers SET credential_version = credential_version + 1, updated_at = ? WHERE id = ?",
+  )
+    .bind(nowIso(), providerId)
+    .run();
+
+  const provider = await env.DB.prepare(
+    "SELECT id, name, domain, active, credential_version FROM providers WHERE id = ?",
+  )
+    .bind(providerId)
+    .first<ProviderRow>();
+  if (!provider) throw new ApiError(500, "provider_write_failed", "Provider could not be read after rotation.");
+  const credentials = await issueProviderCredentials(env, provider.id, provider.credential_version);
+  return json(request, env, { providerId: provider.id, credentials });
 }
 
 export async function upsertOffers(
@@ -295,14 +355,14 @@ export async function upsertOffers(
   env: Env,
   providerIdValue: string,
 ): Promise<Response> {
-  assertAdmin(request, env);
   const providerId = normalizeIdentifier(providerIdValue, 120, "provider_id");
   const provider = await env.DB.prepare(
-    "SELECT id, name, domain, active FROM providers WHERE id = ?",
+    "SELECT id, name, domain, active, credential_version FROM providers WHERE id = ?",
   )
     .bind(providerId)
     .first<ProviderRow>();
   if (!provider) throw new ApiError(404, "provider_not_found", "Provider was not found.");
+  await assertProviderAccess(request, env, providerId, provider.credential_version);
 
   const body = await readJson<{ offers: OfferInput[] }>(request);
   if (!Array.isArray(body.offers) || body.offers.length === 0 || body.offers.length > 500) {
@@ -525,15 +585,30 @@ export async function providerEvent(request: Request, env: Env): Promise<Respons
   }
 
   const raw = await readBodyText(request, 64 * 1024);
-  if (!(await validSignature(raw, request.headers.get("X-AAB-Signature"), env.PROVIDER_WEBHOOK_SECRET))) {
-    throw new ApiError(401, "invalid_signature", "The provider event signature is invalid.");
-  }
-
   let body: ProviderEventInput;
   try {
     body = JSON.parse(raw) as ProviderEventInput;
   } catch {
     throw new ApiError(400, "invalid_json", "The provider event body is not valid JSON.");
+  }
+
+  const providerId = normalizeIdentifier(body.providerId, 120, "provider_id");
+  const provider = await env.DB.prepare(
+    "SELECT id, credential_version FROM providers WHERE id = ?",
+  )
+    .bind(providerId)
+    .first<{ id: string; credential_version: number }>();
+  if (
+    !provider ||
+    !(await validProviderSignature(
+      raw,
+      request.headers.get("X-AAB-Signature"),
+      env,
+      providerId,
+      provider.credential_version,
+    ))
+  ) {
+    throw new ApiError(401, "invalid_signature", "The provider event signature is invalid.");
   }
 
   if (!PROVIDER_OUTCOME_STATUSES.has(body.status)) {
@@ -545,7 +620,7 @@ export async function providerEvent(request: Request, env: Env): Promise<Respons
     throw new ApiError(
       400,
       "invalid_event",
-      "Event id, attribution token, status, and occurredAt are required.",
+      "Provider id, event id, attribution token, status, and occurredAt are required.",
     );
   }
   const occurrence = parseIsoDate(body.occurredAt, "occurred_at", {
@@ -554,21 +629,23 @@ export async function providerEvent(request: Request, env: Env): Promise<Respons
   const evidenceJson = stringifyBoundedJson(body.evidence, "event_evidence", 32 * 1024);
 
   const duplicate = await env.DB.prepare(
-    "SELECT outcome_id AS outcomeId FROM outcome_events WHERE provider_event_id = ?",
+    `SELECT outcome_id AS outcomeId
+       FROM outcome_events
+      WHERE provider_id = ? AND provider_event_id = ?`,
   )
-    .bind(eventId)
+    .bind(providerId, eventId)
     .first<{ outcomeId: string }>();
   if (duplicate) {
     return json(request, env, { accepted: true, duplicate: true, outcomeId: duplicate.outcomeId });
   }
 
   const outcome = await env.DB.prepare(
-    "SELECT id, status, user_confirmed FROM outcomes WHERE attribution_token = ?",
+    "SELECT id, status, user_confirmed FROM outcomes WHERE attribution_token = ? AND provider_id = ?",
   )
-    .bind(attributionToken)
+    .bind(attributionToken, providerId)
     .first<{ id: string; status: OutcomeRow["status"]; user_confirmed: number }>();
   if (!outcome) {
-    throw new ApiError(404, "outcome_not_found", "No attributed outcome was found.");
+    throw new ApiError(404, "outcome_not_found", "No attributed outcome was found for this provider.");
   }
 
   assertOutcomeTransition(outcome.status, body.status, outcome.user_confirmed === 1);
@@ -577,11 +654,12 @@ export async function providerEvent(request: Request, env: Env): Promise<Respons
     await env.DB.batch([
       env.DB.prepare(
         `INSERT INTO outcome_events (
-          id, outcome_id, provider_event_id, status, evidence_json, occurred_at, received_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          id, outcome_id, provider_id, provider_event_id, status, evidence_json, occurred_at, received_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       ).bind(
         id("event"),
         outcome.id,
+        providerId,
         eventId,
         body.status,
         evidenceJson,
@@ -596,7 +674,20 @@ export async function providerEvent(request: Request, env: Env): Promise<Respons
     ]);
   } catch (error) {
     if (error instanceof Error && error.message.toLowerCase().includes("unique")) {
-      return json(request, env, { accepted: true, duplicate: true, outcomeId: outcome.id });
+      const duplicateAfterRace = await env.DB.prepare(
+        `SELECT outcome_id AS outcomeId
+           FROM outcome_events
+          WHERE provider_id = ? AND provider_event_id = ?`,
+      )
+        .bind(providerId, eventId)
+        .first<{ outcomeId: string }>();
+      if (duplicateAfterRace) {
+        return json(request, env, {
+          accepted: true,
+          duplicate: true,
+          outcomeId: duplicateAfterRace.outcomeId,
+        });
+      }
     }
     throw error;
   }
