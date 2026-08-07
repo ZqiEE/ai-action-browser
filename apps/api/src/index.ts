@@ -5,6 +5,7 @@ import {
   prepareOutcome,
   providerEvent,
   readOutcome,
+  rotateProviderCredentials,
   searchWeb,
   upsertOffers,
   upsertProvider,
@@ -45,6 +46,17 @@ async function handle(request: Request, env: Env): Promise<Response> {
   }
   if (request.method === "POST" && url.pathname === "/v1/providers") {
     return upsertProvider(request, env);
+  }
+
+  const rotateCredentialsMatch = url.pathname.match(
+    /^\/v1\/providers\/([^/]+)\/credentials\/rotate$/,
+  );
+  if (request.method === "POST" && rotateCredentialsMatch?.[1]) {
+    return rotateProviderCredentials(
+      request,
+      env,
+      decodePathSegment(rotateCredentialsMatch[1]),
+    );
   }
 
   const offersMatch = url.pathname.match(/^\/v1\/providers\/([^/]+)\/offers$/);
