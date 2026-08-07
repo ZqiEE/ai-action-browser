@@ -64,8 +64,6 @@ export interface PreparedOutcomeResponse {
   taskId: string;
   status: "prepared";
   offer: LiveRecommendation;
-  attributionToken: string;
-  handoffUrl: string;
   reversalDeadline: string;
   userConfirmationRequired: true;
 }
@@ -78,12 +76,10 @@ export interface OutcomeView {
   providerId: string;
   providerName: string;
   providerDomain: string;
-  attributionToken: string;
   status: "prepared" | "confirmed" | "accepted" | "completed" | "cancelled" | "refunded" | "disputed";
   amount: number;
   currency: string;
   userConfirmed: boolean;
-  handoffUrl: string;
   completionEvidence: string | null;
   reversalDeadline: string | null;
   createdAt: string;
