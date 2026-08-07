@@ -47,19 +47,3 @@ export function addBrowserPageContext(
   searchParams.set("ctx_url", context.url);
   return searchParams;
 }
-
-export function contextualizeGoal(
-  goalValue: string,
-  context: BrowserPageContext | null,
-  maxLength: number,
-): string {
-  const goal = clean(goalValue, maxLength);
-  if (!context) return goal;
-
-  const contextTitle = clean(context.title, 160);
-  const contextUrl = clean(context.url, 240);
-  const suffix = `\nCurrent page title: ${contextTitle}\nCurrent page URL: ${contextUrl}`;
-  const prefix = "User goal: ";
-  const goalBudget = Math.max(1, maxLength - prefix.length - suffix.length);
-  return `${prefix}${goal.slice(0, goalBudget)}${suffix}`.slice(0, maxLength);
-}
