@@ -55,7 +55,11 @@ export function ConfirmPage() {
     setConfirming(true);
     setError(null);
     try {
-      await confirmPreparedOutcome(prepared.outcomeId);
+      const confirmation = await confirmPreparedOutcome(prepared.outcomeId);
+      window.sessionStorage.setItem(
+        `aab-continue:${prepared.outcomeId}`,
+        confirmation.continueUrl,
+      );
       navigate(`/outcomes/${encodeURIComponent(prepared.outcomeId)}`);
     } catch (reason) {
       setError(reason instanceof ApiError ? reason.message : "The handoff confirmation failed.");
@@ -113,7 +117,7 @@ export function ConfirmPage() {
               <div><dt>Provider</dt><dd>{offer.providerName}</dd></div>
               <div><dt>Domain</dt><dd><strong>{offer.providerDomain}</strong></dd></div>
               <div><dt>Connection</dt><dd>HTTPS provider URL required by the connector</dd></div>
-              <div><dt>Attribution</dt><dd>A single outcome token is added to the handoff URL</dd></div>
+              <div><dt>Attribution</dt><dd>A single outcome token is added only after confirmation</dd></div>
             </dl>
           </section>
 
@@ -175,8 +179,8 @@ export function ConfirmPage() {
           <p className="eyebrow">User-controlled handoff</p>
           <h2>{formatCurrency(offer.price, offer.currency, locale)}</h2>
           <p>
-            Confirming records your choice and prepares the provider link. It does not authorize a
-            payment or allow the provider to read private browser data.
+            Confirming records your choice and releases the provider link to this browser session.
+            It does not authorize a payment or allow the provider to read private browser data.
           </p>
 
           {error && (
