@@ -26,9 +26,12 @@
 - 空白目标入口的消费者 AI 浏览器首页与 Omniprompt，而不是预填购物任务；
 - 相互独立的普通 Search、Compare、Prepare、Confirm 路径；
 - Chrome／Edge Manifest V3 Side Panel，用户点击扩展后可在当前网页旁启动 Search、Compare 或 Prepare；
-- 扩展仅申请 `activeTab` 与 `sidePanel`，不申请浏览历史、持久 `tabs`、Cookie、Storage、Host Permissions 或 Content Scripts；
-- 当前页上下文只读取标题与经过隐私裁剪的 `origin + pathname`，主动剥离 credentials、query 和 fragment，并且不由扩展持久保存；
-- 用户可以关闭“使用当前页上下文”，关闭后不会把当前页信息带入任务；
+- 扩展仅申请 `activeTab`、`sidePanel` 与用户主动页面读取所需的 `scripting`，不申请浏览历史、持久 `tabs`、Cookie、Storage、Host Permissions 或 Content Scripts；
+- 当前页基础上下文只读取标题与经过隐私裁剪的 `origin + pathname`，主动剥离 credentials、query 和 fragment，并且不由扩展持久保存；
+- 用户可以关闭“使用当前页上下文”，关闭后不会把标题或 URL 带入任务；
+- 用户必须主动点击 **Read this page** 才会读取页面内容；读取范围限定为 description、H1/H2、用户选中文本和有限可见正文摘要；
+- 页面读取会排除 form/input/textarea/select/button/contenteditable 等交互内容；检测到密码、一次性验证码或银行卡字段时，正文提取直接被阻止；
+- 读取后的页面内容先在 Side Panel 中可见、可编辑，只有用户再次点击 **Add to goal** 后才进入任务文本，不使用隐藏正文参数；
 - Brave Search API 实时搜索接口；
 - 可选、有限预算的 OpenAI 自然语言约束提取；
 - Cloudflare Worker API 与 D1 数据库；
@@ -47,7 +50,7 @@
 - OpenAPI 3.1 生产接口契约及 CI 语法校验；
 - Provider Outcome Connector 页面与接入 JSON；
 - Web 类型检查、单元测试、生产构建、桌面和移动端 Playwright 契约测试；
-- 扩展 Manifest 隐私门槛、Node 测试、JavaScript 语法检查和可安装 ZIP Artifact；
+- 扩展 Manifest 隐私门槛、页面读取单测、JavaScript 语法检查和可安装 ZIP Artifact；
 - API 严格 TypeScript 检查与安全、运行、Provider Diagnostics 测试；
 - 锁定依赖的 `npm ci`、生产依赖审计、受控 Worker 与 GitHub Pages 部署工作流。
 
@@ -60,7 +63,7 @@
 - 接入并验证至少一个真实 Provider、Feed、Sandbox、联盟批准、LOI 或商业集成；
 - 发布隐私政策、条款、删除流程与支持联系方式；
 - 配置生产告警阈值、备份、事故响应和运行责任人；
-- 在真实 Chrome／Edge、桌面和移动设备验证公开 URL 与扩展任务流。
+- 在真实 Chrome／Edge、桌面和移动设备验证公开 URL、显式页面读取和扩展任务流。
 
 生产环境不会在 API 或 Provider 失败时用缓存或 Fixture 冒充实时结果。Fixture 只存在于自动化测试或明确的本地测试环境。
 
@@ -71,7 +74,9 @@
 ```text
 用户在 Web 或浏览器 Side Panel 提出目标
         ↓
-可选带入用户主动授权的当前页上下文
+可选带入用户主动授权的当前页标题与隐私裁剪 URL
+        ↓
+用户也可主动 Read this page → 预览/编辑 → Add to goal
         ↓
 普通实时 Search 或主动选择 Compare
         ↓
@@ -120,7 +125,7 @@ Provider 不能购买：
 
 - [`apps/web`](apps/web)：消费者 Web 产品与 Provider 接入页面；
 - [`apps/api`](apps/api)：Cloudflare Worker、D1、搜索、Provider Offer、Prepare、Outcome、运行保护与回调；
-- [`apps/extension`](apps/extension)：可安装的 Chrome／Edge Side Panel、当前页上下文入口与最小权限边界；
+- [`apps/extension`](apps/extension)：可安装的 Chrome／Edge Side Panel、当前页上下文、显式页面读取与最小权限边界；
 - `apps/desktop`：后续桌面 AI 浏览器外壳；
 - `crates`：后续共享 Rust 本地策略核心；
 - `docs`：产品、设计、架构、安全、隐私、验证与商业边界；
@@ -182,6 +187,7 @@ npm run test:e2e
 node --check apps/extension/service-worker.js
 node --check apps/extension/sidepanel.js
 node --check apps/extension/lib/context.mjs
+node --check apps/extension/lib/page-read.mjs
 node apps/extension/scripts/validate-manifest.mjs
 node --test apps/extension/tests/*.test.mjs
 ```
@@ -214,5 +220,6 @@ CI 通过后会生成 `ai-action-browser-extension.zip` Artifact，用于真实 
 9. 用户数据最小化收集，默认不用于训练。
 10. 每个生产任务必须拥有搜索、模型、浏览器时间、重试和金额上限。
 11. 生产失败不得由未标注 Fixture 静默掩盖。
-12. 浏览器权限遵循最小化原则，当前页上下文只能由用户主动调用并明确选择是否带入任务。
-13. 先完成真实任务链和浏览器入口，再扩展完整桌面浏览器壳与任务类别。
+12. 浏览器权限遵循最小化原则；页面内容只能在用户主动点击读取后提取，必须先可见可编辑，再由用户明确加入任务。
+13. 敏感页面必须阻止正文提取，不能读取密码、验证码、支付字段或表单值。
+14. 先完成真实任务链和浏览器入口，再扩展完整桌面浏览器壳与任务类别。
