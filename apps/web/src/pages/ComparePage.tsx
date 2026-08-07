@@ -8,11 +8,7 @@ import {
   type LiveCompareResponse,
   type LiveRecommendation,
 } from "@/lib/api";
-import {
-  addBrowserPageContext,
-  contextualizeGoal,
-  readBrowserPageContext,
-} from "@/lib/browserContext";
+import { addBrowserPageContext, readBrowserPageContext } from "@/lib/browserContext";
 import { formatCurrency, resolveLocale } from "@/lib/locale";
 
 function conditionRows(result: LiveCompareResponse) {
@@ -51,10 +47,6 @@ export function ComparePage() {
   const locale = resolveLocale();
   const query = searchParams.get("q")?.trim() ?? "";
   const pageContext = useMemo(() => readBrowserPageContext(searchParams), [searchParams]);
-  const requestQuery = useMemo(
-    () => (query ? contextualizeGoal(query, pageContext, 1_000) : ""),
-    [pageContext, query],
-  );
   const normalSearchUrl = useMemo(() => {
     const params = addBrowserPageContext(new URLSearchParams({ q: query }), pageContext);
     return `/search?${params.toString()}`;
@@ -66,7 +58,7 @@ export function ComparePage() {
 
   useEffect(() => {
     let active = true;
-    if (!requestQuery) {
+    if (!query) {
       setLoading(false);
       setResult(null);
       setSelectedId("");
@@ -81,7 +73,7 @@ export function ComparePage() {
     setResult(null);
     setSelectedId("");
 
-    compareGoal(requestQuery)
+    compareGoal(query, undefined, pageContext)
       .then((value) => {
         if (!active) return;
         setResult(value);
@@ -102,7 +94,7 @@ export function ComparePage() {
     return () => {
       active = false;
     };
-  }, [requestQuery]);
+  }, [pageContext, query]);
 
   const selected = useMemo<LiveRecommendation | undefined>(() => {
     if (!result) return undefined;
@@ -122,9 +114,12 @@ export function ComparePage() {
 
       {pageContext && (
         <div className="inline-alert" role="note">
-          <strong>Using current page context</strong>
+          <strong>Using current page context for this request</strong>
           <p>{pageContext.title} · {pageContext.hostname}</p>
-          <p>The browser extension supplied only the page title and privacy-bounded URL you chose to include.</p>
+          <p>
+            The page title and privacy-bounded URL are transient discovery context. They are not
+            merged into or stored as your task goal.
+          </p>
         </div>
       )}
 
