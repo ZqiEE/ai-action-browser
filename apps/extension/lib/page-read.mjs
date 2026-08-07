@@ -37,6 +37,22 @@ export function pageReadToGoalText(pageRead) {
   return parts.join("\n");
 }
 
+export function appendPageDetailsToGoal(goalValue, detailsValue, maxLength = 1000) {
+  const goal = clean(goalValue, maxLength);
+  const details = typeof detailsValue === "string" ? detailsValue.trim() : "";
+  if (!details) return { goal, truncated: false };
+
+  const separator = goal ? "\n\nContext from current page:\n" : "Context from current page:\n";
+  const available = Math.max(0, maxLength - goal.length - separator.length);
+  const added = details.slice(0, available).trimEnd();
+  const nextGoal = `${goal}${separator}${added}`.slice(0, maxLength).trimEnd();
+
+  return {
+    goal: nextGoal,
+    truncated: added.length < details.length,
+  };
+}
+
 export function extractPageSnapshot() {
   const cleanPageText = (value, maxLength) =>
     typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, maxLength) : "";
