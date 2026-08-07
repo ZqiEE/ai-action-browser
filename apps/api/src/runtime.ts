@@ -66,7 +66,7 @@ export async function enforceRateLimit(request: Request, env: Env): Promise<Rate
   const now = Date.now();
   const bucket = String(Math.floor(now / WINDOW_MS));
   const resetAt = (Number(bucket) + 1) * WINDOW_MS;
-  const clientHash = (await sha256Hex(clientIdentity(request))).slice(0, 32);
+  const clientHash = (await sha256Hex(`${bucket}:${clientIdentity(request)}`)).slice(0, 32);
   const expiresAt = new Date(resetAt + WINDOW_MS).toISOString();
 
   const row = await env.DB.prepare(
