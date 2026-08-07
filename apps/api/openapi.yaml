@@ -1,11 +1,13 @@
 openapi: 3.1.0
 info:
   title: AI Action Browser Outcome API
-  version: 0.1.0
+  version: 0.2.0
   description: |
     Production contract for the first free AI browser task category.
     Consumer endpoints never accept commission, bid, partner-tier, or expected-revenue inputs.
-    Provider payment cannot purchase independent ranking.
+    Provider payment cannot purchase independent ranking. Each Provider receives isolated Offer API
+    and outcome-signing credentials derived from platform master secrets; platform master secrets
+    are never shared with Providers.
 servers:
   - url: https://api.example.invalid
     description: Replace with the deployed Worker origin.
@@ -13,6 +15,7 @@ tags:
   - name: Runtime
   - name: Consumer
   - name: Provider administration
+  - name: Provider feed
   - name: Provider outcomes
 paths:
   /health:
@@ -36,6 +39,8 @@ paths:
                   providerAdminConfigured:
                     type: boolean
                   providerWebhookConfigured:
+                    type: boolean
+                  providerCredentialIsolationConfigured:
                     type: boolean
                   constraintModelConfigured:
                     type: boolean
@@ -208,7 +213,7 @@ paths:
         - $ref: "#/components/parameters/OutcomeId"
       responses:
         "200":
-          description: Outcome receipt and authenticated provider events.
+          description: Outcome receipt and authenticated Provider events.
           content:
             application/json:
               schema:
@@ -229,6 +234,10 @@ paths:
       operationId: upsertProvider
       security:
         - ProviderAdminBearer: []
+      description: |
+        Creates or updates a Provider and returns its current isolated credentials. This endpoint is
+        platform-administrator only. Treat returned credentials as secrets and deliver them through
+        an authenticated onboarding channel.
       requestBody:
         required: true
         content:
@@ -237,22 +246,56 @@ paths:
               $ref: "#/components/schemas/ProviderInput"
       responses:
         "201":
-          description: Provider created or updated.
+          description: Provider created or updated and current credentials issued.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderProvisioning"
         "401":
+          $ref: "#/components/responses/Error"
+        "503":
+          $ref: "#/components/responses/Error"
+  /v1/providers/{providerId}/credentials/rotate:
+    post:
+      tags: [Provider administration]
+      operationId: rotateProviderCredentials
+      security:
+        - ProviderAdminBearer: []
+      description: |
+        Increments only this Provider's credential version and returns replacement credentials.
+        Previous Provider API and webhook credentials become invalid immediately.
+      parameters:
+        - $ref: "#/components/parameters/ProviderId"
+      responses:
+        "200":
+          description: Provider credentials rotated.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [providerId, credentials]
+                properties:
+                  providerId:
+                    type: string
+                  credentials:
+                    $ref: "#/components/schemas/ProviderCredentials"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
           $ref: "#/components/responses/Error"
   /v1/providers/{providerId}/offers:
     post:
-      tags: [Provider administration]
+      tags: [Provider feed]
       operationId: upsertProviderOffers
       security:
+        - ProviderBearer: []
         - ProviderAdminBearer: []
+      description: |
+        Imports Offers only for the Provider named in the path. A Provider Bearer token is scoped to
+        its own Provider id and current credential version. The platform administrator token is also
+        accepted for recovery and controlled operations.
       parameters:
-        - name: providerId
-          in: path
-          required: true
-          schema:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9._-]*$"
+        - $ref: "#/components/parameters/ProviderId"
       requestBody:
         required: true
         content:
@@ -271,16 +314,32 @@ paths:
       responses:
         "201":
           description: Offers imported.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [providerId, imported]
+                properties:
+                  providerId:
+                    type: string
+                  imported:
+                    type: integer
         "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
           $ref: "#/components/responses/Error"
   /v1/provider-events:
     post:
       tags: [Provider outcomes]
       operationId: recordProviderOutcomeEvent
       description: |
-        Sign the exact UTF-8 JSON body with HMAC-SHA256 and send the lowercase
-        hexadecimal digest in `X-AAB-Signature: sha256=<digest>`.
-        Events are rejected until the consumer has explicitly confirmed the handoff.
+        Sign the exact UTF-8 JSON body with HMAC-SHA256 using this Provider's current
+        `webhookSigningSecret`, then send the lowercase hexadecimal digest in
+        `X-AAB-Signature: sha256=<digest>`. `providerId` is part of the signed body. The Provider id
+        must own the attribution token. Events are rejected until the consumer has explicitly
+        confirmed the handoff.
       parameters:
         - name: X-AAB-Signature
           in: header
@@ -296,7 +355,7 @@ paths:
               $ref: "#/components/schemas/ProviderEvent"
       responses:
         "200":
-          description: Event accepted or recognized as an idempotent duplicate.
+          description: Event accepted or recognized as an idempotent duplicate for this Provider.
           content:
             application/json:
               schema:
@@ -311,6 +370,8 @@ paths:
                     type: string
         "401":
           $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
         "409":
           $ref: "#/components/responses/Error"
 components:
@@ -318,6 +379,11 @@ components:
     ProviderAdminBearer:
       type: http
       scheme: bearer
+      description: Platform-only PROVIDER_ADMIN_TOKEN. Never share this with a Provider.
+    ProviderBearer:
+      type: http
+      scheme: bearer
+      description: Provider-scoped `apiToken` returned during provisioning or credential rotation.
   parameters:
     OutcomeId:
       name: outcomeId
@@ -325,6 +391,13 @@ components:
       required: true
       schema:
         type: string
+    ProviderId:
+      name: providerId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[a-z0-9][a-z0-9._-]*$"
   responses:
     Error:
       description: Structured API error.
@@ -408,6 +481,36 @@ components:
         active:
           type: boolean
           default: true
+    ProviderCredentials:
+      type: object
+      additionalProperties: false
+      required: [credentialVersion, apiToken, webhookSigningSecret]
+      properties:
+        credentialVersion:
+          type: integer
+          minimum: 1
+        apiToken:
+          type: string
+          writeOnly: true
+          description: Bearer token scoped to this Provider's Offer import endpoint.
+        webhookSigningSecret:
+          type: string
+          writeOnly: true
+          description: HMAC secret scoped to this Provider's outcome callbacks.
+    ProviderProvisioning:
+      type: object
+      required: [id, name, domain, active, credentials]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        domain:
+          type: string
+        active:
+          type: boolean
+        credentials:
+          $ref: "#/components/schemas/ProviderCredentials"
     OfferInput:
       type: object
       additionalProperties: false
@@ -460,11 +563,11 @@ components:
         prepareUrl:
           type: string
           format: uri
-          description: HTTPS URL on the provider hostname or one of its subdomains.
+          description: HTTPS URL on the Provider hostname or one of its subdomains.
         sourceUrl:
           type: string
           format: uri
-          description: HTTPS URL on the provider hostname or one of its subdomains.
+          description: HTTPS URL on the Provider hostname or one of its subdomains.
         evidence:
           type: object
           additionalProperties: true
@@ -475,33 +578,73 @@ components:
           type: boolean
           default: true
     OfferView:
-      allOf:
-        - $ref: "#/components/schemas/OfferInput"
-        - type: object
-          required:
-            - providerId
-            - providerName
-            - providerDomain
-            - strengths
-            - tradeoffs
-            - recommendationIndependent
-          properties:
-            providerId:
-              type: string
-            providerName:
-              type: string
-            providerDomain:
-              type: string
-            strengths:
-              type: array
-              items:
-                type: string
-            tradeoffs:
-              type: array
-              items:
-                type: string
-            recommendationIndependent:
-              const: true
+      type: object
+      required:
+        - id
+        - providerId
+        - providerName
+        - providerDomain
+        - category
+        - title
+        - description
+        - price
+        - currency
+        - availability
+        - delivery
+        - returns
+        - warranty
+        - sourceUrl
+        - retrievedAt
+        - strengths
+        - tradeoffs
+        - evidence
+        - recommendationIndependent
+      properties:
+        id:
+          type: string
+        providerId:
+          type: string
+        providerName:
+          type: string
+        providerDomain:
+          type: string
+        category:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        currency:
+          type: string
+        availability:
+          type: string
+        delivery:
+          type: string
+        returns:
+          type: string
+        warranty:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        retrievedAt:
+          type: string
+          format: date-time
+        strengths:
+          type: array
+          items:
+            type: string
+        tradeoffs:
+          type: array
+          items:
+            type: string
+        evidence:
+          type: object
+          additionalProperties: true
+        recommendationIndependent:
+          const: true
     PreparedOutcome:
       type: object
       required:
@@ -595,8 +738,11 @@ components:
     ProviderEvent:
       type: object
       additionalProperties: false
-      required: [eventId, attributionToken, status, occurredAt]
+      required: [providerId, eventId, attributionToken, status, occurredAt]
       properties:
+        providerId:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9._-]*$"
         eventId:
           type: string
           minLength: 1
