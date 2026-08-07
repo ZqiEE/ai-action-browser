@@ -51,16 +51,17 @@ export function ProviderPage() {
   return (
     <div className="provider-page">
       <header className="provider-hero">
-        <p className="eyebrow">AI browser outcome connector</p>
-        <h1>Reach users through verified results, not paid ranking.</h1>
+        <p className="eyebrow">Provider connection for the free AI browser</p>
+        <h1>Fulfill user goals through verified results, not paid ranking.</h1>
         <p>
-          AI Action Browser is completely free for consumers. Providers connect active evidence
-          and a user-authorized handoff, then report accepted, completed, cancelled, refunded, or
-          disputed outcomes through a Provider-scoped signed event endpoint.
+          AI Action Browser is an AI browser for consumers, not a shopping marketplace. Consumers
+          use the browser for free. Providers connect evidence and user-authorized actions, then
+          report accepted, completed, cancelled, refunded, or disputed outcomes through isolated
+          production credentials.
         </p>
         <div className="provider-hero__actions">
-          <Link className="button button--primary" to="/compare?q=Find%20a%20laptop%20under%20%241%2C000&mode=compare">
-            View the consumer flow
+          <Link className="button button--primary" to="/">
+            Open AI Action Browser
           </Link>
           <a
             className="button button--secondary"
@@ -74,15 +75,16 @@ export function ProviderPage() {
       </header>
 
       <p className="demo-banner" role="note">
-        A commercial Provider becomes visible to consumers only after its feed, destination,
-        attribution, outcome contract, privacy boundary, credentials, and operational status are
-        verified. Payment does not purchase the independent best-result position.
+        The current production V1 supports U.S. laptop discovery and Provider handoff as its first
+        task category. That category is the first deployable path, not the product definition. A
+        Provider becomes eligible for traffic only after its feed, destination, attribution,
+        credentials, freshness, privacy boundary, and operational status are verified.
       </p>
 
       <section className="provider-grid" aria-label="Provider value">
         <article>
           <p className="eyebrow">Consumer promise</p>
-          <h2>Core browser access remains free</h2>
+          <h2>The AI browser stays free</h2>
           <ul>
             <li>No consumer subscription or paid recommendation tier.</li>
             <li>No sale of private browsing history, credentials, or payment data.</li>
@@ -96,8 +98,9 @@ export function ProviderPage() {
             <li>Normalized Offer and evidence ingestion.</li>
             <li>Provider-scoped API token for Offer imports.</li>
             <li>Provider-scoped HMAC secret for outcome callbacks.</li>
+            <li>Production diagnostics for credentials, Offer freshness, and traffic readiness.</li>
             <li>Independent credential rotation without exposing platform master secrets.</li>
-            <li>User-confirmed Prepare handoff with a random attribution token.</li>
+            <li>User-confirmed handoff with auditable outcome state.</li>
           </ul>
         </article>
         <article>
@@ -119,7 +122,7 @@ export function ProviderPage() {
           <p>
             Before production access, both sides define success, attribution window, completion
             evidence, cancellation, refund, reversal, dispute handling, settlement timing, and the
-            minimum reporting data.
+            minimum reporting data. None of those commercial terms enter independent ranking.
           </p>
         </div>
         <ol className="outcome-steps">
@@ -131,10 +134,10 @@ export function ProviderPage() {
         </ol>
       </section>
 
-      <section className="provider-examples" aria-label="Connector examples">
+      <section className="provider-examples" aria-label="Connector contract examples">
         <article>
           <div className="section-heading">
-            <div><p className="eyebrow">Provider input</p><h2>Offer feed</h2></div>
+            <div><p className="eyebrow">Provider input contract</p><h2>Offer feed</h2></div>
             <button type="button" onClick={() => downloadJson("provider-feed-example.json", providerFeedExample)}>
               Download JSON
             </button>
@@ -143,7 +146,7 @@ export function ProviderPage() {
         </article>
         <article>
           <div className="section-heading">
-            <div><p className="eyebrow">Provider callback</p><h2>Outcome event</h2></div>
+            <div><p className="eyebrow">Provider callback contract</p><h2>Outcome event</h2></div>
             <button type="button" onClick={() => downloadJson("outcome-event-example.json", outcomeExample)}>
               Download JSON
             </button>
@@ -155,13 +158,14 @@ export function ProviderPage() {
       <section className="provider-contract" aria-labelledby="go-live-title">
         <div>
           <p className="eyebrow">Go-live requirements</p>
-          <h2 id="go-live-title">What a first Provider supplies</h2>
+          <h2 id="go-live-title">What a production Provider supplies</h2>
         </div>
         <ol className="outcome-steps">
           <li><strong>Feed</strong><span>Active Offers and evidence with retrieval timestamps.</span></li>
           <li><strong>Action</strong><span>An HTTPS destination or constrained Action endpoint.</span></li>
           <li><strong>Contract</strong><span>A precise billable result and reversal policy.</span></li>
           <li><strong>Credentials</strong><span>Its scoped Offer API token and webhook signing secret.</span></li>
+          <li><strong>Diagnostics</strong><span>Its authenticated readiness check passes with fresh active Offers.</span></li>
           <li><strong>Webhook</strong><span>HMAC-signed outcome events with Provider-scoped idempotent event ids.</span></li>
           <li><strong>Review</strong><span>Security, privacy, legal, and recommendation-independence approval.</span></li>
         </ol>
