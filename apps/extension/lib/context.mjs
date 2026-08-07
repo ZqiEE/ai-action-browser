@@ -9,6 +9,15 @@ function clean(value, maxLength) {
   return typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, maxLength) : "";
 }
 
+function privacyBoundedPageUrl(url) {
+  const bounded = new URL(url.toString());
+  bounded.username = "";
+  bounded.password = "";
+  bounded.search = "";
+  bounded.hash = "";
+  return bounded.toString();
+}
+
 export function normalizeTabContext(tab) {
   const rawUrl = clean(tab?.url, MAX_URL_LENGTH);
   if (!rawUrl) return { available: false, reason: "No current Web page is available." };
@@ -27,7 +36,7 @@ export function normalizeTabContext(tab) {
   return {
     available: true,
     title: clean(tab?.title, MAX_TITLE_LENGTH) || url.hostname,
-    url: url.toString(),
+    url: privacyBoundedPageUrl(url),
     hostname: url.hostname,
   };
 }
