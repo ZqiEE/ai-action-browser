@@ -37,6 +37,17 @@ export function readBrowserPageContext(searchParams: URLSearchParams): BrowserPa
   };
 }
 
+export function addBrowserPageContext(
+  searchParams: URLSearchParams,
+  context: BrowserPageContext | null,
+): URLSearchParams {
+  if (!context) return searchParams;
+  searchParams.set("ctx_source", "extension");
+  searchParams.set("ctx_title", context.title);
+  searchParams.set("ctx_url", context.url);
+  return searchParams;
+}
+
 export function contextualizeGoal(
   goalValue: string,
   context: BrowserPageContext | null,
