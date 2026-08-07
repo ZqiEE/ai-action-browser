@@ -61,7 +61,7 @@ export function SearchPage() {
         <div className="inline-alert inline-alert--danger" role="alert">
           <strong>Search unavailable</strong>
           <p>{error}</p>
-          <p>The browser did not replace the failed request with demonstration results.</p>
+          <p>The browser did not substitute cached or fixture results for the failed live request.</p>
         </div>
       )}
 
