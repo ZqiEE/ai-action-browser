@@ -8,6 +8,7 @@ on:
       - "apps/web/src/lib/browserContext.test.ts"
       - "apps/web/src/pages/SearchPage.tsx"
       - "apps/web/src/pages/ComparePage.tsx"
+      - "docs/production-validation.md"
       - ".github/workflows/extension.yml"
   push:
     branches: [main]
@@ -17,6 +18,7 @@ on:
       - "apps/web/src/lib/browserContext.test.ts"
       - "apps/web/src/pages/SearchPage.tsx"
       - "apps/web/src/pages/ComparePage.tsx"
+      - "docs/production-validation.md"
       - ".github/workflows/extension.yml"
 
 permissions:
