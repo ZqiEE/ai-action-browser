@@ -1,12 +1,13 @@
 openapi: 3.1.0
 info:
   title: AI Action Browser Outcome API
-  version: 0.3.0
+  version: 0.4.0
   description: |
     Production contract for the first deployable task path of the free AI browser.
-    AI Action Browser is the product category; U.S. laptop discovery is only the first supported
-    task category. Consumer endpoints never accept commission, bid, partner-tier, or expected-revenue
-    inputs. Provider payment cannot purchase independent ranking.
+    AI Action Browser is the product category; U.S. laptop discovery is the first commercially
+    validated Provider category, while Compare can match any active Provider category. Consumer
+    endpoints never accept commission, bid, partner-tier, or expected-revenue inputs. Provider
+    payment cannot purchase independent ranking.
 
     Non-health routes use bounded per-minute request budgets. Every response carries X-Request-Id;
     rate-limited routes also expose rate-limit metadata. The attributed Provider continuation URL is
@@ -86,6 +87,10 @@ paths:
     post:
       tags: [Consumer]
       operationId: compareOffers
+      description: |
+        Independently matches the user goal against active Provider Offers. `category` is an optional
+        exact Provider-category constraint; when omitted, relevance is determined from the user goal
+        and Provider Offer content without commercial ranking inputs.
       requestBody:
         required: true
         content:
@@ -101,11 +106,10 @@ paths:
                   maxLength: 1000
                 category:
                   type: string
-                  default: laptop
                   pattern: "^[a-z0-9][a-z0-9._-]*$"
       responses:
         "200":
-          description: Independent comparison of active Provider Offers.
+          description: Independent relevance comparison of active Provider Offers.
           headers:
             X-Request-Id: { $ref: "#/components/headers/RequestId" }
             X-RateLimit-Limit: { $ref: "#/components/headers/RateLimitLimit" }
@@ -499,7 +503,7 @@ components:
       properties:
         taskId: { type: string }
         query: { type: string }
-        category: { type: string }
+        category: { type: [string, "null"] }
         constraints: { $ref: "#/components/schemas/Constraints" }
         recommendations:
           type: array
@@ -597,7 +601,7 @@ components:
     OfferInput:
       type: object
       additionalProperties: false
-      required: [id, category, title, price, currency, availability, deliveryText, returnsText, warrantyText, prepareUrl, sourceUrl, retrievedAt]
+      required: [id, category, title, price, currency, availability, prepareUrl, sourceUrl, retrievedAt]
       properties:
         id:
           type: string
