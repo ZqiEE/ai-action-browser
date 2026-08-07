@@ -9,7 +9,8 @@ Both applications install exactly the dependency trees committed in `package-loc
 ### Production API
 
 - strict TypeScript checking;
-- provider URL, timestamp, evidence-size, signature, confirmation, and outcome-transition tests;
+- Provider URL, timestamp, evidence-size, signature, confirmation, and outcome-transition tests;
+- Provider credential derivation and cross-Provider authorization tests;
 - production dependency audit with no high-severity findings.
 
 ### Web application
@@ -35,10 +36,16 @@ Malformed encoded dynamic paths must recover to the safe not-found route instead
 
 ## Runtime safety gates
 
-- production never substitutes fixture offers or outcomes;
-- provider source and handoff URLs use HTTPS on the registered provider domain or its subdomains;
-- provider events are HMAC signed and idempotent;
-- provider events cannot create a result before explicit consumer confirmation;
+- production never substitutes fixture Offers or outcomes;
+- Provider source and handoff URLs use HTTPS on the registered Provider domain or its subdomains;
+- platform Provider master secrets are never returned to Provider clients;
+- each Provider receives credentials scoped to its Provider id and current credential version;
+- a Provider API token cannot import Offers for another Provider;
+- a Provider webhook signature cannot mutate another Provider's attributed outcome;
+- Provider event idempotency is scoped by Provider id;
+- rotating one Provider invalidates only that Provider's previous API and webhook credentials;
+- Provider events are HMAC signed and idempotent;
+- Provider events cannot create a result before explicit consumer confirmation;
 - cancelled and refunded outcomes cannot be rewritten as completed;
 - request bodies, evidence objects, model calls, and search calls are bounded;
 - recommendation queries do not receive commission, bids, partner tier, or expected revenue.
@@ -47,12 +54,13 @@ Malformed encoded dynamic paths must recover to the safe not-found route instead
 
 Automation cannot complete these items without the owner accounts and commercial counterparties:
 
-- create and bind the production D1 database;
-- configure Cloudflare, Brave Search, provider administration, and webhook secrets;
+- create and bind the production D1 database and apply every committed migration;
+- configure Cloudflare, Brave Search, Provider administration, and Provider credential master secrets;
 - set exact Web/API origins and repository deployment variables;
+- establish an authenticated channel for delivering Provider-scoped credentials;
 - publish privacy, terms, deletion, and support information;
 - configure rate limits, monitoring, alerts, backups, and incident response;
-- connect at least one real provider, approved affiliate network, Feed, sandbox, or signed commercial pilot;
+- connect at least one real Provider, approved affiliate network, Feed, sandbox, or signed commercial pilot;
 - verify the deployed desktop and mobile URLs.
 
 The PR remains a launchable codebase, not a claim that these external launch gates are already complete.
