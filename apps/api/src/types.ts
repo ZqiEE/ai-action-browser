@@ -8,14 +8,21 @@ export interface Env {
   PROVIDER_WEBHOOK_SECRET?: string;
 }
 
+export interface BrowserPageContextInput {
+  title?: string;
+  url: string;
+}
+
 export interface SearchRequest {
   query: string;
   count?: number;
+  pageContext?: BrowserPageContextInput;
 }
 
 export interface CompareRequest {
   query: string;
   category?: string;
+  pageContext?: BrowserPageContextInput;
 }
 
 export interface ProviderInput {
