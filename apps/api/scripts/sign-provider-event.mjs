@@ -2,11 +2,11 @@ import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 const filePath = process.argv[2];
-const secret = process.env.PROVIDER_WEBHOOK_SECRET;
+const secret = process.env.PROVIDER_WEBHOOK_SIGNING_SECRET;
 
 if (!filePath || !secret) {
   console.error(
-    "Usage: PROVIDER_WEBHOOK_SECRET=<secret> npm run sign:event -- path/to/provider-event.json",
+    "Usage: PROVIDER_WEBHOOK_SIGNING_SECRET=<provider-secret> npm run sign:event -- path/to/provider-event.json",
   );
   process.exitCode = 1;
 } else {
