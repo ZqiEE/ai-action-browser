@@ -35,8 +35,10 @@ export function corsHeaders(request: Request, env: Env): HeadersInit {
   if (!origin) return {};
   return {
     "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Headers": "Authorization, Content-Type, X-AAB-Signature",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type, X-AAB-Signature, X-Request-Id",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Expose-Headers":
+      "Retry-After, X-Request-Id, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
