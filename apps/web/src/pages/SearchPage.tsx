@@ -1,11 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Omniprompt } from "@/components/Omniprompt";
 import { ApiError, searchWeb, type LiveSearchResponse } from "@/lib/api";
+import {
+  addBrowserPageContext,
+  contextualizeGoal,
+  readBrowserPageContext,
+} from "@/lib/browserContext";
 
 export function SearchPage() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q")?.trim() || "AI browser";
+  const pageContext = useMemo(() => readBrowserPageContext(searchParams), [searchParams]);
+  const requestQuery = useMemo(
+    () => contextualizeGoal(query, pageContext, 500),
+    [pageContext, query],
+  );
+  const compareUrl = useMemo(() => {
+    const params = addBrowserPageContext(
+      new URLSearchParams({ mode: "compare", q: query }),
+      pageContext,
+    );
+    return `/compare?${params.toString()}`;
+  }, [pageContext, query]);
   const [result, setResult] = useState<LiveSearchResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -16,7 +33,7 @@ export function SearchPage() {
     setError(null);
     setResult(null);
 
-    searchWeb(query)
+    searchWeb(requestQuery)
       .then((value) => {
         if (active) setResult(value);
       })
@@ -35,7 +52,7 @@ export function SearchPage() {
     return () => {
       active = false;
     };
-  }, [query]);
+  }, [requestQuery]);
 
   return (
     <div className="browser-result-page">
@@ -49,6 +66,14 @@ export function SearchPage() {
       </header>
 
       <Omniprompt initialValue={query} compact />
+
+      {pageContext && (
+        <div className="inline-alert" role="note">
+          <strong>Using current page context</strong>
+          <p>{pageContext.title} · {pageContext.hostname}</p>
+          <p>The browser extension supplied only the page title and privacy-bounded URL you chose to include.</p>
+        </div>
+      )}
 
       {loading && (
         <div className="task-loading" role="status" aria-live="polite">
@@ -69,7 +94,7 @@ export function SearchPage() {
         <div className="browser-result-layout">
           <main className="search-results" aria-label={`Results for ${query}`}>
             <p className="search-results__summary">
-              {result.results.length} live results for “{result.query}” · {result.durationMs} ms
+              {result.results.length} live results for “{query}” · {result.durationMs} ms
             </p>
             {result.results.map((item) => (
               <article className="search-result" key={item.id}>
@@ -95,10 +120,7 @@ export function SearchPage() {
               Compare creates a separate task, reads only active provider offers, and ranks them
               without commission, bids, partner level, or expected revenue.
             </p>
-            <Link
-              className="button button--primary"
-              to={`/compare?mode=compare&q=${encodeURIComponent(query)}`}
-            >
+            <Link className="button button--primary" to={compareUrl}>
               Compare with evidence
             </Link>
             <Link className="button button--secondary" to="/">
