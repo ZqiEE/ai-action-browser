@@ -28,6 +28,10 @@ function statusDescription(status: OutcomeView["status"]): string {
   }
 }
 
+function continuationKey(outcomeId: string): string {
+  return `aab-continue:${outcomeId}`;
+}
+
 export function OutcomePage() {
   const { outcomeId = "" } = useParams();
   const locale = resolveLocale();
@@ -44,7 +48,11 @@ export function OutcomePage() {
     setLoading(true);
     setError(null);
     try {
-      setData(await getOutcome(outcomeId));
+      const next = await getOutcome(outcomeId);
+      setData(next);
+      if (!["confirmed", "accepted"].includes(next.outcome.status)) {
+        window.sessionStorage.removeItem(continuationKey(outcomeId));
+      }
     } catch (reason) {
       setError(reason instanceof ApiError ? reason.message : "The outcome receipt could not be loaded.");
     } finally {
@@ -81,7 +89,10 @@ export function OutcomePage() {
   }
 
   const { outcome, events } = data;
-  const canContinue = outcome.userConfirmed && ["confirmed", "accepted"].includes(outcome.status);
+  const continueUrl = window.sessionStorage.getItem(continuationKey(outcome.id));
+  const canContinue = Boolean(
+    continueUrl && outcome.userConfirmed && ["confirmed", "accepted"].includes(outcome.status),
+  );
 
   return (
     <main id="main-content" className="secure-page secure-page--success">
@@ -96,7 +107,6 @@ export function OutcomePage() {
           <div><dt>Provider</dt><dd>{outcome.providerName} · {outcome.providerDomain}</dd></div>
           <div><dt>Amount</dt><dd>{formatCurrency(outcome.amount, outcome.currency, locale)}</dd></div>
           <div><dt>Outcome id</dt><dd><code>{outcome.id}</code></dd></div>
-          <div><dt>Attribution token</dt><dd><code>{outcome.attributionToken}</code></dd></div>
           <div><dt>Updated</dt><dd>{new Date(outcome.updatedAt).toLocaleString()}</dd></div>
           <div><dt>Reversal deadline</dt><dd>{outcome.reversalDeadline ? new Date(outcome.reversalDeadline).toLocaleString() : "Not defined"}</dd></div>
         </dl>
@@ -125,8 +135,8 @@ export function OutcomePage() {
         )}
 
         <div className="receipt-actions">
-          {canContinue && (
-            <a className="button button--primary" href={outcome.handoffUrl} target="_blank" rel="noreferrer">
+          {canContinue && continueUrl && (
+            <a className="button button--primary" href={continueUrl} target="_blank" rel="noreferrer">
               Continue to {outcome.providerName}
             </a>
           )}
@@ -135,9 +145,9 @@ export function OutcomePage() {
         </div>
 
         <p className="confirmation-note">
-          Opening the provider does not grant this browser access to provider credentials or payment
-          details. A completed commercial result requires an authenticated provider event and remains
-          reversible under the provider contract.
+          The attributed provider URL is released only after confirmation and remains in this browser
+          session instead of the public outcome receipt. A completed commercial result still requires
+          an authenticated provider event and remains reversible under the provider contract.
         </p>
       </section>
     </main>
