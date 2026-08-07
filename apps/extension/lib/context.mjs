@@ -1,6 +1,6 @@
 export const DEFAULT_APP_BASE_URL = "https://zqiee.github.io/ai-action-browser/";
 
-const MAX_GOAL_LENGTH = 500;
+const MAX_GOAL_LENGTH = 1000;
 const MAX_TITLE_LENGTH = 240;
 const MAX_URL_LENGTH = 1800;
 const MODES = new Set(["search", "compare", "prepare"]);
