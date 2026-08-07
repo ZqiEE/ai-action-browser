@@ -31,6 +31,8 @@ jobs:
           cache-dependency-path: apps/api/package-lock.json
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
+      - name: Apply local D1 migrations
+        run: npm run db:migrate:local
       - name: Typecheck Worker
         run: npm run typecheck
       - name: Security and contract tests
