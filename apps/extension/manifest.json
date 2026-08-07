@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "AI Action Browser",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A free AI browser side panel for Search, Compare, and Prepare with explicit user confirmation before important handoffs.",
   "minimum_chrome_version": "116",
   "permissions": [
     "activeTab",
-    "sidePanel"
+    "sidePanel",
+    "scripting"
   ],
   "action": {
     "default_title": "Open AI Action Browser"
