@@ -16,6 +16,8 @@ const STOP_WORDS = new Set([
   "for",
   "from",
   "goal",
+  "http",
+  "https",
   "in",
   "is",
   "me",
@@ -28,11 +30,13 @@ const STOP_WORDS = new Set([
   "please",
   "the",
   "this",
+  "title",
   "to",
   "under",
   "url",
   "user",
   "with",
+  "www",
 ]);
 
 function normalize(value: string): string {
