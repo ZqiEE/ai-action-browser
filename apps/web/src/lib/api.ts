@@ -47,7 +47,7 @@ export interface LiveRecommendation {
 export interface LiveCompareResponse {
   taskId: string;
   query: string;
-  category: string;
+  category: string | null;
   constraints: BrowserConstraints;
   recommendations: LiveRecommendation[];
   incomplete: boolean;
@@ -151,10 +151,10 @@ export function searchWeb(query: string): Promise<LiveSearchResponse> {
   });
 }
 
-export function compareGoal(query: string, category = "laptop"): Promise<LiveCompareResponse> {
+export function compareGoal(query: string, category?: string): Promise<LiveCompareResponse> {
   return apiRequest<LiveCompareResponse>("/v1/compare", {
     method: "POST",
-    body: JSON.stringify({ query, category }),
+    body: JSON.stringify(category ? { query, category } : { query }),
   });
 }
 
