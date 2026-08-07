@@ -44,13 +44,20 @@ Malformed encoded dynamic paths must recover to the safe not-found route instead
 
 - Manifest V3 only;
 - minimum Chrome version remains explicit and compatible with Side Panel behavior;
-- JavaScript syntax checks pass for the service worker, Side Panel, and context helper;
-- extension context unit tests pass;
-- the Manifest validator rejects any permission expansion beyond `activeTab` and `sidePanel`;
+- JavaScript syntax checks pass for the service worker, Side Panel, URL-context helper, and explicit page-reader helper;
+- extension URL-context and page-reader unit tests pass;
+- the Manifest validator rejects any permission expansion beyond `activeTab`, `sidePanel`, and user-invoked `scripting`;
 - `host_permissions`, `optional_host_permissions`, persistent content scripts, storage, history, cookies, and persistent tabs access remain absent;
 - the current page URL is reduced to `origin + pathname` before task handoff, stripping credentials, query parameters, and fragments;
-- disabling current-page context removes all `ctx_*` values from the task route;
-- current-page values remain in the Hash route rather than the initial HTTP request to the Web host;
+- disabling current-page metadata removes all `ctx_*` values from the task route;
+- current-page metadata values remain in the Hash route rather than the initial HTTP request to the Web host;
+- page contents are never read automatically when the Side Panel opens; content extraction requires a separate explicit `Read this page` action;
+- explicit page reading is bounded to meta description, H1/H2 headings, user-selected text, and a limited visible-text excerpt;
+- page reading removes forms, inputs, textareas, selects, buttons, editable regions, scripts, styles, navigation, headers, and footers from the extracted text source;
+- a page containing password, one-time-code, or payment-card fields returns no extracted page content;
+- extracted page details are shown in an editable Side Panel preview and are not part of the task until the user explicitly chooses `Add to goal`;
+- rich page details are not passed through hidden URL parameters and are not persisted by the extension;
+- the resulting task text remains bounded to 1,000 characters before the normal Web/API request budgets apply;
 - CI packages an installable `ai-action-browser-extension.zip` artifact after validation.
 
 ## Runtime safety gates
@@ -79,7 +86,8 @@ Malformed encoded dynamic paths must recover to the safe not-found route instead
 - every response receives a request id and rate-limit metadata where applicable;
 - structured request logging excludes request bodies, search text, browsing history, Provider secrets, and attribution tokens;
 - recommendation queries do not receive commission, bids, partner tier, or expected revenue;
-- browser extension current-page context is read only after user invocation, is not persisted by the extension, and can be excluded before starting the task;
+- browser extension current-page metadata is read only after user invocation, is not persisted by the extension, and can be excluded before starting the task;
+- browser extension page content is read only after a second explicit action and must be visible/editable before the user can add it to the task;
 - browser extension permissions cannot silently expand without failing the checked-in Manifest validation gate;
 - production-facing documentation links target stable `main` paths rather than temporary feature branches.
 
@@ -95,7 +103,9 @@ Automation cannot complete these items without the owner accounts and commercial
 - configure alert thresholds, backups, incident response, and operational ownership around the existing structured logs and request ids;
 - connect at least one real Provider, approved affiliate network, Feed, sandbox, or signed commercial pilot;
 - verify that the real Provider passes the authenticated diagnostics endpoint with fresh active Offers;
-- install the packaged extension in real Chrome and Edge, verify current-page context on normal Web pages, and verify no context is available on restricted browser pages;
+- install the packaged extension in real Chrome and Edge, verify current-page metadata on normal Web pages, and verify no context is available on restricted browser pages;
+- verify explicit page reading on ordinary content pages and verify that login, one-time-code, and payment-card pages suppress content extraction;
+- verify that extracted details remain visible/editable until the user adds them to the task;
 - verify that the extension opens the exact production Web origin and that Search / Compare / Prepare preserve the confirmation boundary;
 - verify the deployed desktop and mobile URLs.
 
