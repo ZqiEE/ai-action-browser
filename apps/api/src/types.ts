@@ -33,9 +33,9 @@ export interface OfferInput {
   price: number;
   currency: string;
   availability: string;
-  deliveryText: string;
-  returnsText: string;
-  warrantyText: string;
+  deliveryText?: string;
+  returnsText?: string;
+  warrantyText?: string;
   prepareUrl: string;
   sourceUrl: string;
   evidence?: Record<string, unknown>;
