@@ -26,10 +26,14 @@ function offer(overrides: Partial<OfferRow>): OfferRow {
 }
 
 describe("category-neutral Provider relevance", () => {
-  it("removes generic instruction words from goal tokens", () => {
-    expect(goalTokens("Compare this current page with better laptop options for video editing"))
-      .toEqual(expect.arrayContaining(["laptop", "video", "editing"]));
-    expect(goalTokens("Compare this current page with better laptop options")).not.toContain("compare");
+  it("removes generic browser-context scaffolding from goal tokens", () => {
+    const tokens = goalTokens(
+      "Compare this current page title with better laptop options. Current page URL: https://www.example.test/laptops",
+    );
+    expect(tokens).toEqual(expect.arrayContaining(["laptop", "laptops"]));
+    for (const ignored of ["compare", "current", "page", "title", "url", "https", "www"]) {
+      expect(tokens).not.toContain(ignored);
+    }
   });
 
   it("prefers a software offer for a software goal without an explicit category", () => {
