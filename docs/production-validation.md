@@ -8,6 +8,8 @@ The product category is the AI browser. U.S. laptop discovery and Provider hando
 
 The API and Web applications install exactly the dependency trees committed in `package-lock.json` using `npm ci`. The browser extension intentionally has no runtime npm dependency tree and is validated with Node built-ins plus Manifest checks.
 
+Changes to this shared checklist must trigger the Production API, Web application, and Browser extension workflows on the same pull-request head so release evidence cannot drift between components.
+
 ### Production API
 
 - all committed D1 migrations apply successfully to a clean local database;
