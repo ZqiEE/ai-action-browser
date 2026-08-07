@@ -14,6 +14,9 @@ The machine-readable contract is [`openapi.yaml`](openapi.yaml).
 - A Provider callback can mutate only outcomes attributed to the same Provider id.
 - Provider event ids are idempotent within a Provider, so two Providers may safely use the same local event id.
 - Provider credentials can be rotated independently; rotation invalidates the previous Provider API token and signing secret immediately.
+- `/v1/prepare` creates the internal attribution record without returning the attribution token or attributed Provider URL.
+- The attributed Provider URL is released only by a successful explicit `/confirm` request.
+- Public Outcome Receipt responses omit both the attribution token and attributed Provider URL.
 - A Provider event cannot create a commercial result before the consumer confirms the handoff.
 - Outcome transitions are deterministic and reject invalid rewrites such as `cancelled → completed`.
 - Provider Offer links must use HTTPS on the registered Provider hostname or one of its subdomains.
@@ -78,6 +81,8 @@ npm run deploy
 - `POST /v1/prepare`
 - `POST /v1/outcomes/:outcomeId/confirm`
 - `GET /v1/outcomes/:outcomeId`
+
+`POST /v1/prepare` does not return a usable Provider handoff capability. The attributed `continueUrl` appears only after explicit confirmation. `GET /v1/outcomes/:outcomeId` is an auditable receipt and does not return that capability or the internal attribution token.
 
 ## Provider onboarding
 
@@ -237,6 +242,8 @@ The API test suite covers:
 - idempotent same-state events;
 - Provider credential separation by Provider id, purpose, and credential version;
 - rejection of a Provider token used against another Provider or an old credential version.
+
+The Web contract test additionally verifies that the Provider continuation URL is obtained only after confirmation, retained only in the current browser session, and not rendered as an attribution token in the public receipt.
 
 ## Not yet production-complete
 
