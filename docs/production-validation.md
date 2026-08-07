@@ -45,6 +45,10 @@ Malformed encoded dynamic paths must recover to the safe not-found route instead
 - a Provider webhook signature cannot mutate another Provider's attributed outcome;
 - Provider event idempotency is scoped by Provider id;
 - rotating one Provider invalidates only that Provider's previous API and webhook credentials;
+- `/v1/prepare` does not expose the attribution token or attributed Provider handoff URL;
+- the attributed Provider continuation URL is released only after explicit consumer confirmation;
+- the public Outcome Receipt omits the attribution token and Provider continuation URL;
+- the Web client keeps a confirmed continuation capability only in the current browser session;
 - Provider events are HMAC signed and idempotent;
 - Provider events cannot create a result before explicit consumer confirmation;
 - cancelled and refunded outcomes cannot be rewritten as completed;
