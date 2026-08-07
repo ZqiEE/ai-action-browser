@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildTaskUrl, normalizeTabContext } from "../lib/context.mjs";
 
-test("normalizes only active http or https page context", () => {
+test("normalizes only active http or https page context and strips sensitive URL parts", () => {
   assert.deepEqual(
-    normalizeTabContext({ title: " Example   Laptop ", url: "https://shop.example/products/1" }),
+    normalizeTabContext({
+      title: " Example   Laptop ",
+      url: "https://user:secret@shop.example/products/1?session=abc#checkout",
+    }),
     {
       available: true,
       title: "Example Laptop",
@@ -32,7 +35,8 @@ test("builds Search, Compare, and Prepare routes without server query leakage", 
     assert.ok(taskUrl.includes(expectedRoute));
     assert.ok(parsed.hash.includes("ctx_source=extension"));
     assert.ok(parsed.hash.includes("ctx_title=Current+Product"));
-    assert.ok(parsed.hash.includes("ctx_url=https%3A%2F%2Fshop.example%2Fp%2F1%3Fsku%3Dabc"));
+    assert.ok(parsed.hash.includes("ctx_url=https%3A%2F%2Fshop.example%2Fp%2F1"));
+    assert.equal(parsed.hash.includes("sku%3Dabc"), false);
     if (mode === "compare") assert.ok(parsed.hash.includes("mode=compare"));
     if (mode === "prepare") assert.ok(parsed.hash.includes("mode=prepare"));
   }
