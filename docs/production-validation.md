@@ -15,6 +15,7 @@ Both applications install exactly the dependency trees committed in `package-loc
 - Provider URL, timestamp, evidence-size, signature, confirmation, and outcome-transition tests;
 - Provider credential derivation and cross-Provider authorization tests;
 - production rate-limit and request-correlation tests;
+- the checked-in OpenAPI contract describes every public production route, Provider diagnostics, confirmation capability boundary, and 429/request-correlation behavior;
 - production dependency audit with no high-severity findings.
 
 ### Web application
@@ -59,7 +60,7 @@ Malformed encoded dynamic paths must recover to the safe not-found route instead
 - cancelled and refunded outcomes cannot be rewritten as completed;
 - request bodies, evidence objects, model calls, and search calls are bounded;
 - non-health production routes have explicit per-minute request budgets;
-- rate-limit storage never stores the raw client IP;
+- rate-limit storage never stores the raw client IP and uses a window-scoped client hash rather than a stable cross-window pseudonym;
 - expired rate-limit buckets are removed by a scheduled Worker cleanup;
 - every response receives a request id and rate-limit metadata where applicable;
 - structured request logging excludes request bodies, search text, browsing history, Provider secrets, and attribution tokens;
