@@ -132,3 +132,61 @@ test("consumer can enter a real browser goal, compare, confirm a provider handof
     continueUrl,
   );
 });
+
+test("browser extension context stays separate from the stored Compare goal and strips URL secrets", async ({ page }) => {
+  let requestBody: {
+    query?: string;
+    category?: string;
+    pageContext?: { title?: string; url?: string };
+  } = {};
+
+  await page.route("https://api.contract.test/v1/compare", async (route) => {
+    requestBody = route.request().postDataJSON() as typeof requestBody;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        taskId: "task-context-1",
+        query: requestBody.query,
+        category: "laptop",
+        constraints: {
+          budget: 1000,
+          useCase: "not specified",
+          delivery: "not specified",
+          returns: "not specified",
+        },
+        recommendations: [recommendation],
+        incomplete: false,
+        pageContextUsed: true,
+        recommendationPolicy: {
+          commissionUsedForRanking: false,
+          bidsUsedForRanking: false,
+          expectedRevenueUsedForRanking: false,
+        },
+      }),
+    });
+  });
+
+  const goal = "Compare this with better laptops under $1,000";
+  const params = new URLSearchParams({
+    mode: "compare",
+    q: goal,
+    ctx_source: "extension",
+    ctx_title: "Current Laptop Product",
+    ctx_url: "https://user:secret@shop.example/products/current?session=abc#checkout",
+  });
+
+  await page.goto(`/#/compare?${params.toString()}`);
+
+  await expect(page.getByText("Using current page context for this request")).toBeVisible();
+  await expect(page.getByText(/Current Laptop Product · shop\.example/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: goal })).toBeVisible();
+  await expect.poll(() => requestBody.query).toBe(goal);
+  expect(requestBody.category).toBeUndefined();
+  expect(requestBody.pageContext).toEqual({
+    title: "Current Laptop Product",
+    url: "https://shop.example/products/current",
+  });
+  expect(JSON.stringify(requestBody)).not.toContain("session=abc");
+  expect(JSON.stringify(requestBody)).not.toContain("secret@");
+  expect(JSON.stringify(requestBody)).not.toContain("#checkout");
+});

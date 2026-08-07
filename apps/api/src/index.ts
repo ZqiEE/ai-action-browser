@@ -1,13 +1,12 @@
+import { compareOffers } from "./compare";
 import { providerDiagnostics } from "./diagnostics";
 import {
-  compareOffers,
   confirmOutcome,
   health,
   prepareOutcome,
   providerEvent,
   readOutcome,
   rotateProviderCredentials,
-  searchWeb,
   upsertOffers,
   upsertProvider,
 } from "./handlers";
@@ -20,6 +19,7 @@ import {
   withRuntimeHeaders,
   type RateLimitDecision,
 } from "./runtime";
+import { searchWeb } from "./search";
 import type { Env } from "./types";
 
 function decodePathSegment(value: string): string {

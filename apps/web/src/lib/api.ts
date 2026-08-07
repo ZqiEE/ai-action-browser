@@ -1,3 +1,5 @@
+import type { BrowserPageContext } from "./browserContext";
+
 export interface LiveSearchResult {
   id: string;
   title: string;
@@ -13,6 +15,7 @@ export interface LiveSearchResponse {
   results: LiveSearchResult[];
   source: string;
   durationMs: number;
+  pageContextUsed?: boolean;
 }
 
 export interface BrowserConstraints {
@@ -47,10 +50,11 @@ export interface LiveRecommendation {
 export interface LiveCompareResponse {
   taskId: string;
   query: string;
-  category: string;
+  category: string | null;
   constraints: BrowserConstraints;
   recommendations: LiveRecommendation[];
   incomplete: boolean;
+  pageContextUsed?: boolean;
   message?: string;
   recommendationPolicy?: {
     commissionUsedForRanking: false;
@@ -144,17 +148,33 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export function searchWeb(query: string): Promise<LiveSearchResponse> {
+function pageContextPayload(context: BrowserPageContext | null | undefined) {
+  return context ? { title: context.title, url: context.url } : undefined;
+}
+
+export function searchWeb(
+  query: string,
+  pageContext?: BrowserPageContext | null,
+): Promise<LiveSearchResponse> {
   return apiRequest<LiveSearchResponse>("/v1/search", {
     method: "POST",
-    body: JSON.stringify({ query, count: 8 }),
+    body: JSON.stringify({ query, count: 8, pageContext: pageContextPayload(pageContext) }),
   });
 }
 
-export function compareGoal(query: string, category = "laptop"): Promise<LiveCompareResponse> {
+export function compareGoal(
+  query: string,
+  category?: string,
+  pageContext?: BrowserPageContext | null,
+): Promise<LiveCompareResponse> {
+  const pageContextValue = pageContextPayload(pageContext);
   return apiRequest<LiveCompareResponse>("/v1/compare", {
     method: "POST",
-    body: JSON.stringify({ query, category }),
+    body: JSON.stringify({
+      query,
+      ...(category ? { category } : {}),
+      ...(pageContextValue ? { pageContext: pageContextValue } : {}),
+    }),
   });
 }
 

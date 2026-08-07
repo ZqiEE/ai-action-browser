@@ -1,12 +1,14 @@
 # AI Action Browser API
 
-Production runtime for the first free AI browser category. This Worker provides live Web search, Provider Offer ingestion, deterministic independent comparison, user-controlled Prepare and Confirm, attribution, authenticated Provider outcome events, request protection, and Provider production diagnostics.
+Production runtime for the free AI browser. This Worker provides live Web search, category-neutral Provider Offer ingestion and independent comparison, user-controlled Prepare and Confirm, attribution, authenticated Provider outcome events, request protection, and Provider production diagnostics.
 
 The machine-readable contract is [`openapi.yaml`](openapi.yaml).
 
 ## Production guarantees
 
 - Consumer endpoints do not accept commission, bid, partner tier, or expected-revenue inputs.
+- Compare does not default to a shopping category. When the caller omits `category`, active Provider Offers are matched against the user goal using deterministic relevance over category, title, description, explicit budget, availability, price, and freshness ordering only.
+- An explicit `category` remains available as an exact Provider-category constraint when the browser or a trusted task flow already knows the category.
 - Platform Provider administration requires a server-side bearer token that is never shared with Providers.
 - Each Provider receives an isolated Offer API token and isolated HMAC webhook signing secret.
 - Provider credentials are derived from platform master secrets plus Provider id and credential version; Provider secrets are not stored in D1.
@@ -29,7 +31,7 @@ The machine-readable contract is [`openapi.yaml`](openapi.yaml).
 - Every API response receives an `X-Request-Id`; safe caller-provided request ids are preserved for cross-system tracing.
 - Structured request logs contain method, path, status, duration, route group, coarse Cloudflare location metadata, and request id, but not request bodies, search text, Provider secrets, attribution tokens, or browsing history.
 - No production endpoint silently falls back to fixture results.
-- OpenAI is optional and is used only for bounded natural-language constraint extraction when configured.
+- OpenAI is optional and is used only for bounded natural-language comparison-constraint extraction when configured.
 - Responses API requests use `store: false`.
 - Important external actions remain unexecuted until the consumer confirms the prepared outcome.
 
@@ -107,6 +109,8 @@ The limits protect a free consumer product from accidental loops and basic abuse
 - `POST /v1/outcomes/:outcomeId/confirm`
 - `GET /v1/outcomes/:outcomeId`
 
+`POST /v1/compare` accepts a required `query` and an optional exact `category`. Omitting `category` invokes category-neutral matching over current active Provider supply. If nothing is relevant, the endpoint returns no recommendation rather than guessing across unrelated categories.
+
 `POST /v1/prepare` does not return a usable Provider handoff capability. The attributed `continueUrl` appears only after explicit confirmation. `GET /v1/outcomes/:outcomeId` is an auditable receipt and does not return that capability or the internal attribution token.
 
 ## Provider onboarding
@@ -181,6 +185,8 @@ Authorization: Bearer <provider-api-token>
   ]
 }
 ```
+
+`laptop` above is the first commercial validation category, not a hard-coded API category. Providers may use other normalized categories such as `software`, `travel`, or `local_service` when they supply the corresponding real Offers. `deliveryText`, `returnsText`, and `warrantyText` are optional and should be supplied only when meaningful for that category.
 
 The token is scoped to `provider-example`; it cannot import Offers for another Provider path. The platform administrator token is also accepted for controlled recovery operations.
 
@@ -280,6 +286,7 @@ The API test suite covers:
 - idempotent same-state events;
 - Provider credential separation by Provider id, purpose, and credential version;
 - rejection of a Provider token used against another Provider or an old credential version;
+- category-neutral relevance ranking and refusal to guess across unrelated Provider categories;
 - consumer and Provider rate-limit route budgets;
 - request correlation header behavior.
 

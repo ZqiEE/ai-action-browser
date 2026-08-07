@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Action Browser</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <main class="panel-shell">
+      <header class="brand-block">
+        <p class="eyebrow">Completely free AI browser</p>
+        <h1>AI Action Browser</h1>
+        <p>Search, compare, or prepare a Web task without losing the page you are using.</p>
+      </header>
+
+      <section class="context-card" aria-labelledby="context-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Current page</p>
+            <h2 id="context-title">Browser context</h2>
+          </div>
+          <div class="context-actions">
+            <button id="refresh-context" class="quiet-button" type="button">Refresh</button>
+            <button id="read-page" class="quiet-button" type="button">Read this page</button>
+          </div>
+        </div>
+        <div id="context-status" class="context-status" role="status" aria-live="polite">
+          Reading the active page…
+        </div>
+        <label class="checkbox-row">
+          <input id="include-context" type="checkbox" checked />
+          <span>Use this page title and privacy-bounded URL for the task</span>
+        </label>
+
+        <div id="page-read-section" class="page-read-section" hidden>
+          <label for="page-read-preview">Page details you can add to the task</label>
+          <textarea
+            id="page-read-preview"
+            rows="7"
+            maxlength="4200"
+            spellcheck="false"
+            aria-describedby="page-read-message"
+          ></textarea>
+          <div class="page-read-actions">
+            <button id="add-page-details" class="quiet-button" type="button">Add to goal</button>
+            <button id="clear-page-details" class="quiet-button" type="button">Clear</button>
+          </div>
+          <p id="page-read-message" class="privacy-note" role="status" aria-live="polite"></p>
+        </div>
+
+        <p class="privacy-note">
+          Title and URL metadata are read only for the tab where you invoked the extension. Page
+          contents are read only after you press <strong>Read this page</strong>. The extension
+          does not read browsing history, cookies, passwords, payment data, form values, or hidden
+          background tabs, and it does not persist page context. Pages containing password,
+          one-time-code, or card-number fields are blocked from content extraction.
+        </p>
+      </section>
+
+      <form id="task-form" class="task-form">
+        <label for="goal">What do you want to find or get done?</label>
+        <textarea
+          id="goal"
+          name="goal"
+          rows="6"
+          maxlength="1000"
+          placeholder="Example: Compare this laptop with better options under $1,000 and explain the trade-offs."
+          required
+        ></textarea>
+
+        <fieldset>
+          <legend>Choose browser behavior</legend>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="search" checked />
+            <span><strong>Search</strong><small>Normal Web search. No cross-site action.</small></span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="compare" />
+            <span><strong>Compare</strong><small>Read independent Provider evidence and trade-offs.</small></span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="prepare" />
+            <span><strong>Prepare</strong><small>Prepare the supported task, then stop before the important handoff.</small></span>
+          </label>
+        </fieldset>
+
+        <button id="start-task" class="primary-button" type="submit">Start Search</button>
+        <p id="form-error" class="form-error" role="alert" aria-live="assertive"></p>
+      </form>
+
+      <footer>
+        <p>Important Provider handoffs still require explicit confirmation in the trusted browser flow.</p>
+      </footer>
+    </main>
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>
