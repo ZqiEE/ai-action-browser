@@ -104,8 +104,9 @@ test("consumer can explicitly choose Compare, confirm a provider handoff, and vi
   const prompt = page.getByRole("textbox", { name: /search, compare, or prepare/i });
   await expect(prompt).toHaveValue("");
   await prompt.fill(compareQuery);
-  await page.getByRole("button", { name: "Compare" }).click();
-  await expect(page.getByRole("button", { name: "Compare" })).toHaveAttribute("aria-pressed", "true");
+  const compareMode = page.getByRole("button", { name: "Compare", exact: true });
+  await compareMode.click();
+  await expect(compareMode).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: /continue with compare/i }).click();
 
   await expect(page).toHaveURL(/\/compare\?mode=compare/);
