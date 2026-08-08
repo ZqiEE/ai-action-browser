@@ -24,10 +24,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="site-header">
         <Link to="/" className="wordmark" aria-label="AI Action Browser home">
           <span className="wordmark__mark" aria-hidden="true" />
-          <span>Action Browser</span>
+          <span>AI Action Browser</span>
         </Link>
-        <nav className="site-header__actions" aria-label="Product and appearance">
-          <Link to="/providers" className="text-link">For providers</Link>
+        <nav className="site-header__actions" aria-label="Browser controls">
           <IconButton
             label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
