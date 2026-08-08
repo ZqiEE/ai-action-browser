@@ -1,0 +1,55 @@
+name: Windows D-drive launcher
+
+on:
+  pull_request:
+    paths:
+      - "scripts/windows-d-drive-setup.ps1"
+      - ".github/workflows/windows-launcher.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/windows-d-drive-setup.ps1"
+      - ".github/workflows/windows-launcher.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell launcher
+        shell: powershell
+        run: |
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path "scripts/windows-d-drive-setup.ps1"),
+            [ref]$null,
+            [ref]$errors
+          )
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Host "PowerShell syntax OK"
+      - name: Validate D-drive safety defaults
+        shell: powershell
+        run: |
+          $script = Get-Content "scripts/windows-d-drive-setup.ps1" -Raw
+          $required = @(
+            'D:\Projects\ai-action-browser',
+            'D:\npm-cache',
+            'D:\playwright-browsers',
+            'D:\Temp\ai-action-browser',
+            'D:\Tools'
+          )
+          foreach ($value in $required) {
+            if (-not $script.Contains($value)) {
+              throw "Missing required D-drive path: $value"
+            }
+          }
+          if ($script -match 'C:\\Projects|C:\\npm-cache|C:\\playwright') {
+            throw "Launcher contains a prohibited C-drive project/cache default."
+          }
+          Write-Host "D-drive defaults OK"
