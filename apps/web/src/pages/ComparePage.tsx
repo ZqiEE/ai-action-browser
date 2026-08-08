@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "@/components/Button";
-import { CheckIcon } from "@/components/Icons";
 import {
   ApiError,
   compareGoal,
@@ -84,7 +83,7 @@ export function ComparePage() {
         setError(
           reason instanceof ApiError
             ? reason.message
-            : "The independent Provider comparison could not be completed.",
+            : "The independent provider comparison could not be completed.",
         );
       })
       .finally(() => {
@@ -100,63 +99,56 @@ export function ComparePage() {
     if (!result) return undefined;
     return result.recommendations.find((item) => item.id === selectedId) ?? result.recommendations[0];
   }, [result, selectedId]);
-  const alternatives = result?.recommendations.filter((item) => item.id !== selected?.id) ?? [];
 
   return (
     <div className="compare-page">
-      <section className="comparison-command" aria-label="Current comparison">
+      <header className="compare-toolbar">
         <div>
-          <p className="eyebrow">Independent comparison</p>
-          <h1>{query || "Compare Provider evidence"}</h1>
+          <span className="workspace-label">Compare</span>
+          <h1>{query || "Compare provider evidence"}</h1>
         </div>
-        <Button variant="secondary" onClick={() => navigate("/")}>Change request</Button>
-      </section>
+        <div className="compare-toolbar__actions">
+          <Button variant="secondary" onClick={() => navigate(normalSearchUrl)}>Search web</Button>
+          <Button variant="quiet" onClick={() => navigate("/")}>New task</Button>
+        </div>
+      </header>
 
       {pageContext && (
-        <div className="inline-alert" role="note">
-          <strong>Using current page context for this request</strong>
-          <p>{pageContext.title} · {pageContext.hostname}</p>
-          <p>
-            The page title and privacy-bounded URL are transient discovery context. They are not
-            merged into or stored as your task goal.
-          </p>
+        <div className="context-strip" role="note">
+          <strong>Current page</strong>
+          <span>{pageContext.title}</span>
+          <span>{pageContext.hostname}</span>
         </div>
       )}
 
-      <p className="demo-banner" role="note">
-        Provider commission, bids, partner level, and expected revenue are unavailable to ranking.
-        Compare uses the user goal and active Provider evidence only.
+      <p className="ranking-note" role="note">
+        Ranking uses relevance and provider evidence only. Commission, bids, partner level, and expected revenue are not ranking inputs.
       </p>
 
       {loading && (
-        <div className="task-loading" role="status" aria-live="polite">
-          <span className="spinner" aria-hidden="true" />
-          <span>Matching active Provider evidence to your goal…</span>
-        </div>
+        <p className="quiet-status" role="status" aria-live="polite">Matching active provider evidence…</p>
       )}
 
       {error && (
         <div className="inline-alert inline-alert--danger" role="alert">
           <strong>Comparison unavailable</strong>
           <p>{error}</p>
-          <p>No fixture recommendations were substituted.</p>
+          <p>No fixture recommendation was substituted.</p>
         </div>
       )}
 
       {result && result.recommendations.length === 0 && (
         <div className="empty-state" role="status">
-          <h2>No relevant active Provider offers</h2>
-          <p>{result.message ?? "No current Provider evidence matched this goal."}</p>
-          <Button variant="secondary" onClick={() => navigate(normalSearchUrl)}>
-            Use normal Search
-          </Button>
+          <h2>No relevant active provider offers</h2>
+          <p>{result.message ?? "No current provider evidence matched this goal."}</p>
+          <Button variant="secondary" onClick={() => navigate(normalSearchUrl)}>Use normal Search</Button>
         </div>
       )}
 
       {result && selected && (
         <>
           {conditionRows(result).length > 0 && (
-            <section className="condition-bar" aria-label="Extracted comparison conditions">
+            <section className="condition-bar" aria-label="Comparison conditions">
               {conditionRows(result).map((condition) => (
                 <div className="condition-control" key={condition.id}>
                   <span><small>{condition.label}</small><strong>{condition.value}</strong></span>
@@ -165,105 +157,77 @@ export function ComparePage() {
             </section>
           )}
 
-          <div className="comparison-layout">
-            <main className="comparison-results" aria-label="Independent recommendations">
-              <article className="primary-recommendation">
-                <div className="recommendation-label">Best current match</div>
-                <div className="product-heading">
-                  <div>
-                    <p className="eyebrow">{selected.providerName} · {selected.providerDomain}</p>
-                    <h2>{selected.title}</h2>
-                    <p className="product-headline">{selected.description || "Provider-supplied active evidence."}</p>
-                  </div>
-                  <div className="product-price">
-                    <strong>{formatCurrency(selected.price, selected.currency, locale)}</strong>
-                    <span>Provider amount</span>
-                  </div>
+          <div className="compare-workspace">
+            <section className="offer-list" aria-label="Independent recommendations">
+              <div className="offer-list__header">
+                <strong>{result.recommendations.length} active matches</strong>
+                <span>Best relevance first</span>
+              </div>
+              {result.recommendations.map((offer, index) => (
+                <button
+                  key={offer.id}
+                  type="button"
+                  className="offer-row"
+                  aria-pressed={selected.id === offer.id}
+                  onClick={() => setSelectedId(offer.id)}
+                >
+                  <span className="offer-row__rank">{index + 1}</span>
+                  <span className="offer-row__body">
+                    <strong>{offer.title}</strong>
+                    <small>{offer.providerName} · {offer.category}</small>
+                    <span>{offer.description || offer.availability}</span>
+                  </span>
+                  <span className="offer-row__price">{formatCurrency(offer.price, offer.currency, locale)}</span>
+                </button>
+              ))}
+            </section>
+
+            <aside className="offer-detail" aria-label="Selected recommendation details">
+              <div className="offer-detail__heading">
+                <div>
+                  <span className="workspace-label">Selected result</span>
+                  <h2>{selected.title}</h2>
+                  <p>{selected.providerName} · {selected.providerDomain}</p>
                 </div>
+                <strong className="offer-detail__price">{formatCurrency(selected.price, selected.currency, locale)}</strong>
+              </div>
 
-                <div className="decision-reason">
-                  <h3>Why this appears first</h3>
-                  <p>
-                    It is the strongest current relevance match after applying explicit conditions.
-                    Commercial terms were not part of the ranking input.
-                  </p>
-                </div>
+              <p className="offer-detail__description">{selected.description || "Provider-supplied active evidence."}</p>
 
-                <div className="tradeoff-grid">
-                  <section>
-                    <h3>What works well</h3>
-                    <ul className="evidence-list evidence-list--positive">
-                      {selected.strengths.map((strength) => <li key={strength}><CheckIcon />{strength}</li>)}
-                    </ul>
-                  </section>
-                  <section>
-                    <h3>What to verify</h3>
-                    <ul className="evidence-list evidence-list--tradeoff">
-                      {selected.tradeoffs.map((tradeoff) => <li key={tradeoff}><span aria-hidden="true">—</span>{tradeoff}</li>)}
-                    </ul>
-                  </section>
-                </div>
+              <section className="detail-section">
+                <h3>Why it matches</h3>
+                <ul>
+                  {selected.strengths.map((strength) => <li key={strength}>{strength}</li>)}
+                </ul>
+              </section>
 
-                <dl className="product-metadata">
-                  {providerFacts(selected).map((fact) => (
-                    <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>
-                  ))}
-                </dl>
+              <section className="detail-section">
+                <h3>Check before continuing</h3>
+                <ul>
+                  {selected.tradeoffs.map((tradeoff) => <li key={tradeoff}>{tradeoff}</li>)}
+                </ul>
+              </section>
 
-                <div className="citations" aria-label="Provider evidence source">
-                  <span>Evidence</span>
-                  <a href={selected.sourceUrl} target="_blank" rel="noreferrer">Open Provider source</a>
-                  <small>Retrieved {sourceAge(selected.retrievedAt)}</small>
-                </div>
-              </article>
+              <dl className="detail-facts">
+                {providerFacts(selected).map((fact) => (
+                  <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>
+                ))}
+              </dl>
 
-              {alternatives.length > 0 && (
-                <section className="alternatives" aria-labelledby="alternatives-title">
-                  <div className="section-heading">
-                    <div><p className="eyebrow">Other active offers</p><h2 id="alternatives-title">Compare the main trade-offs</h2></div>
-                  </div>
-                  <div className="alternative-list">
-                    {alternatives.map((offer) => (
-                      <article className="alternative-row" key={offer.id}>
-                        <div>
-                          <p className="alternative-row__label">{offer.providerName}</p>
-                          <h3>{offer.title}</h3>
-                          <p>{offer.description || offer.availability}</p>
-                        </div>
-                        <dl>
-                          <div><dt>Amount</dt><dd>{formatCurrency(offer.price, offer.currency, locale)}</dd></div>
-                          <div><dt>Category</dt><dd>{offer.category}</dd></div>
-                          <div><dt>Main check</dt><dd>{offer.tradeoffs[0] ?? "Review Provider evidence"}</dd></div>
-                        </dl>
-                        <Button variant="secondary" onClick={() => setSelectedId(offer.id)}>Make main choice</Button>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </main>
+              <div className="evidence-source">
+                <a href={selected.sourceUrl} target="_blank" rel="noreferrer">Open provider source</a>
+                <small>Retrieved {sourceAge(selected.retrievedAt)}</small>
+              </div>
 
-            <aside className="decision-summary" aria-label="Decision summary">
-              <p className="eyebrow">Ready to prepare</p>
-              <h2>{selected.title}</h2>
-              <p className="decision-summary__price">{formatCurrency(selected.price, selected.currency, locale)}</p>
-              <ul>
-                <li>{selected.providerName}</li>
-                <li>{selected.category}</li>
-                <li>{selected.availability || "Availability not supplied"}</li>
-              </ul>
               <Button
                 variant="primary"
                 onClick={() => navigate(
                   `/confirm?offer=${encodeURIComponent(selected.id)}&task=${encodeURIComponent(result.taskId)}&q=${encodeURIComponent(query)}`,
                 )}
               >
-                Prepare with this Provider
+                Prepare with this provider
               </Button>
-              <p className="confirmation-note">
-                This creates an attributed prepared outcome. The Provider handoff opens only after
-                you review the destination and explicitly confirm.
-              </p>
+              <p className="confirmation-note">The provider handoff remains locked until you review and confirm it.</p>
             </aside>
           </div>
         </>
