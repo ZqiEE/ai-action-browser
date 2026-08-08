@@ -48,81 +48,57 @@ export function SearchPage() {
 
   return (
     <div className="browser-result-page">
-      <header className="browser-result-header">
-        <p className="eyebrow">Normal web search</p>
-        <h1>Search results</h1>
-        <p>
-          Search does not silently visit multiple sites, fill forms, or prepare a transaction.
-          Choose Compare explicitly when you want the browser to gather and rank provider evidence.
-        </p>
-      </header>
-
-      <Omniprompt initialValue={query} compact />
+      <section className="task-toolbar" aria-label="Current browser task">
+        <Omniprompt initialValue={query} compact />
+      </section>
 
       {pageContext && (
-        <div className="inline-alert" role="note">
-          <strong>Using current page context for this request</strong>
-          <p>{pageContext.title} · {pageContext.hostname}</p>
-          <p>
-            The page title and privacy-bounded URL are sent as transient request context. They are
-            not merged into the user goal.
-          </p>
+        <div className="context-strip" role="note">
+          <strong>Current page</strong>
+          <span>{pageContext.title}</span>
+          <span>{pageContext.hostname}</span>
         </div>
       )}
 
       {loading && (
-        <div className="task-loading" role="status" aria-live="polite">
-          <span className="spinner" aria-hidden="true" />
-          <span>Searching the live Web…</span>
-        </div>
+        <p className="quiet-status" role="status" aria-live="polite">Searching the live web…</p>
       )}
 
       {error && (
         <div className="inline-alert inline-alert--danger" role="alert">
           <strong>Search unavailable</strong>
           <p>{error}</p>
-          <p>The browser did not substitute cached or fixture results for the failed live request.</p>
+          <p>No cached or fixture result was substituted.</p>
         </div>
       )}
 
       {result && (
-        <div className="browser-result-layout">
-          <main className="search-results" aria-label={`Results for ${query}`}>
+        <section className="search-workspace">
+          <header className="result-toolbar">
             <p className="search-results__summary">
-              {result.results.length} live results for “{query}” · {result.durationMs} ms
+              {result.results.length} results · {result.durationMs} ms
             </p>
+            <div className="result-toolbar__actions">
+              <Link className="button button--secondary" to={compareUrl}>Compare this goal</Link>
+              <Link className="button button--quiet" to="/">New task</Link>
+            </div>
+          </header>
+
+          <main className="search-results" aria-label={`Results for ${query}`}>
             {result.results.map((item) => (
               <article className="search-result" key={item.id}>
                 <p className="search-result__url">{item.displayUrl}</p>
                 <h2>
-                  <a href={item.url} target="_blank" rel="noreferrer">
-                    {item.title}
-                  </a>
+                  <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a>
                 </h2>
                 <p>{item.snippet}</p>
                 <div className="search-result__meta">
-                  <span>{item.sourceType}</span>
-                  <span>{item.age || "Live search result"}</span>
+                  <span>{item.age || "Live result"}</span>
                 </div>
               </article>
             ))}
           </main>
-
-          <aside className="browser-action-panel" aria-label="Continue this browser task">
-            <p className="eyebrow">Do more with this goal</p>
-            <h2>Compare provider evidence</h2>
-            <p>
-              Compare creates a separate task, reads only active provider offers, and ranks them
-              without commission, bids, partner level, or expected revenue.
-            </p>
-            <Link className="button button--primary" to={compareUrl}>
-              Compare with evidence
-            </Link>
-            <Link className="button button--secondary" to="/">
-              Start a different task
-            </Link>
-          </aside>
-        </div>
+        </section>
       )}
     </div>
   );

@@ -44,7 +44,7 @@ const outcome = {
   updatedAt: "2026-08-07T12:01:00Z",
 };
 
-test("consumer can enter a real browser goal, compare, confirm a provider handoff, and view the outcome receipt", async ({ page }) => {
+test("consumer can explicitly choose Compare, confirm a provider handoff, and view the outcome receipt", async ({ page }) => {
   await page.route("https://api.contract.test/v1/compare", async (route) => {
     await route.fulfill({
       contentType: "application/json",
@@ -99,23 +99,20 @@ test("consumer can enter a real browser goal, compare, confirm a provider handof
   });
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /what do you want to find or get done/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "New task" })).toBeVisible();
 
   const prompt = page.getByRole("textbox", { name: /search, compare, or prepare/i });
   await expect(prompt).toHaveValue("");
   await prompt.fill(compareQuery);
-  await prompt.focus();
-  await prompt.press("ArrowDown");
-  await prompt.press("Enter");
+  const compareMode = page.getByRole("button", { name: "Compare", exact: true });
+  await compareMode.click();
+  await expect(compareMode).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: /continue with compare/i }).click();
 
   await expect(page).toHaveURL(/\/compare\?mode=compare/);
   await expect(page.getByRole("heading", { name: /find a laptop under/i })).toBeVisible();
   await expect(page.getByText(/commission, bids, partner level/i)).toBeVisible();
-  await expect(
-    page
-      .getByLabel("Independent recommendations")
-      .getByRole("heading", { name: "Test Laptop" }),
-  ).toBeVisible();
+  await expect(page.getByLabel("Independent recommendations").getByText("Test Laptop", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: /prepare with this provider/i }).click();
   await expect(page).toHaveURL(/\/confirm/);
@@ -177,8 +174,9 @@ test("browser extension context stays separate from the stored Compare goal and 
 
   await page.goto(`/#/compare?${params.toString()}`);
 
-  await expect(page.getByText("Using current page context for this request")).toBeVisible();
-  await expect(page.getByText(/Current Laptop Product · shop\.example/)).toBeVisible();
+  await expect(page.getByText("Current page", { exact: true })).toBeVisible();
+  await expect(page.getByText("Current Laptop Product", { exact: true })).toBeVisible();
+  await expect(page.getByText("shop.example", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: goal })).toBeVisible();
   await expect.poll(() => requestBody.query).toBe(goal);
   expect(requestBody.category).toBeUndefined();
