@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from "react";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { CompareIcon, PrepareIcon, SearchIcon } from "@/components/Icons";
 import type { IntentMode } from "@/types";
@@ -6,7 +6,7 @@ import type { IntentMode } from "@/types";
 interface ModeOption {
   id: IntentMode;
   label: string;
-  icon: JSX.Element;
+  icon: ReactNode;
 }
 
 const modeOptions: ModeOption[] = [
