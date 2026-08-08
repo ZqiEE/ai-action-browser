@@ -14,7 +14,7 @@ describe("Omniprompt", () => {
     window.history.replaceState(null, "", `${window.location.pathname}#/`);
   });
 
-  it("keeps Search as default and lets the user choose Compare with the keyboard", async () => {
+  it("keeps Search as the stable default and changes mode only after an explicit click", async () => {
     const user = userEvent.setup();
 
     render(
@@ -24,15 +24,13 @@ describe("Omniprompt", () => {
       </HashRouter>,
     );
 
-    const input = screen.getByRole("textbox", { name: /search, compare, or prepare/i });
-    await user.click(input);
+    expect(screen.getByRole("button", { name: "Search" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Compare" })).toHaveAttribute("aria-pressed", "false");
 
-    expect(screen.getByRole("option", { name: /search the web/i })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    await user.click(screen.getByRole("button", { name: "Compare" }));
+    expect(screen.getByRole("button", { name: "Compare" })).toHaveAttribute("aria-pressed", "true");
 
-    await user.keyboard("{ArrowDown}{Enter}");
+    await user.click(screen.getByRole("button", { name: /continue with compare/i }));
 
     expect(screen.getByLabelText("current route")).toHaveTextContent("/compare?mode=compare");
   });
