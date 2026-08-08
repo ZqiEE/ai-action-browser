@@ -6,6 +6,7 @@ import "@/styles/tokens.css";
 import "@/styles/global.css";
 import "@/styles/enhancements.css";
 import "@/styles/production.css";
+import "@/styles/browser-system.css";
 
 const locale = resolveLocale();
 document.documentElement.lang = locale;
