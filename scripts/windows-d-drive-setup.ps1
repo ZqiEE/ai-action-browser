@@ -56,7 +56,8 @@ function Configure-DDriveEnvironment {
 
 function Get-NodeVersion {
   $node = Get-Command node -ErrorAction SilentlyContinue
-  if (-not $node) { return $null }
+  $npm = Get-Command npm -ErrorAction SilentlyContinue
+  if (-not $node -or -not $npm) { return $null }
   try {
     return [version]((& node -p "process.versions.node").Trim())
   } catch {
@@ -68,7 +69,7 @@ function Ensure-Node {
   $required = [version]$NodeVersion
   $installed = Get-NodeVersion
   if ($installed -and $installed -ge $required) {
-    Write-Host "Node $installed already available." -ForegroundColor Green
+    Write-Host "Node $installed and npm are already available." -ForegroundColor Green
     return
   }
 
@@ -85,7 +86,7 @@ function Ensure-Node {
   $env:Path = "$NodeRoot;$env:Path"
   $installed = Get-NodeVersion
   if (-not $installed -or $installed -lt $required) {
-    throw "Portable Node.js could not be started from $NodeRoot."
+    throw "Portable Node.js/npm could not be started from $NodeRoot."
   }
   Write-Host "Portable Node $installed ready at $NodeRoot" -ForegroundColor Green
 }
@@ -197,17 +198,24 @@ function Get-PowerShellExecutable {
 
 function Start-DevWindow([string]$Title, [string]$WorkingDirectory, [string]$Command) {
   $psExe = Get-PowerShellExecutable
-  $prefix = @"
-`$Host.UI.RawUI.WindowTitle = '$Title';
-`$env:TEMP = '$TempRoot';
-`$env:TMP = '$TempRoot';
-`$env:NPM_CONFIG_CACHE = '$NpmCache';
-`$env:PLAYWRIGHT_BROWSERS_PATH = '$PlaywrightRoot';
-`$env:Path = '$NodeRoot;' + `$env:Path;
-Set-Location '$WorkingDirectory';
+  $safeName = ($Title -replace '[^A-Za-z0-9_-]', '-')
+  $childScript = Join-Path $TempRoot "$safeName.ps1"
+  @"
+`$Host.UI.RawUI.WindowTitle = '$Title'
+`$env:TEMP = '$TempRoot'
+`$env:TMP = '$TempRoot'
+`$env:NPM_CONFIG_CACHE = '$NpmCache'
+`$env:PLAYWRIGHT_BROWSERS_PATH = '$PlaywrightRoot'
+`$env:Path = '$NodeRoot;' + `$env:Path
+Set-Location '$WorkingDirectory'
 $Command
-"@
-  Start-Process -FilePath $psExe -ArgumentList @("-NoExit", "-Command", $prefix) -WorkingDirectory $WorkingDirectory | Out-Null
+"@ | Set-Content -Path $childScript -Encoding ascii
+
+  Start-Process -FilePath $psExe -ArgumentList @(
+    "-NoExit",
+    "-ExecutionPolicy", "Bypass",
+    "-File", $childScript
+  ) -WorkingDirectory $WorkingDirectory | Out-Null
 }
 
 function Wait-ForWeb {
